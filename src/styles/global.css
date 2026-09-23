@@ -15,7 +15,7 @@
   --ok: #5fd38d;
   --bad: #ff6b5b;
 
-  --serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --serif: 'Newsreader Variable', 'Iowan Old Style', Georgia, serif;
   --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
   --gutter: clamp(16px, 4vw, 48px);

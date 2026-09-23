@@ -1,4 +1,9 @@
 ---
+// Fonts are served from this site, so no visitor's request goes to a third party.
+import '@fontsource-variable/newsreader/opsz.css';
+import '@fontsource-variable/newsreader/opsz-italic.css';
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/jetbrains-mono/500.css';
 import '../styles/global.css';
 import '../styles/agent.css';
 
@@ -39,12 +44,6 @@ const suggestions = [
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#0a0b0d" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&display=swap"
-    />
     <script is:inline>
       try {
         const t = localStorage.getItem('theme');

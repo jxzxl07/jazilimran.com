@@ -124,7 +124,7 @@ export const projects: Project[] = [
     ],
     stack: ['React', 'TypeScript', 'WebCrypto', 'FastAPI', 'PostgreSQL', 'WebSockets', 'WebRTC', 'Docker'],
     links: [
-      { label: 'Try it', href: 'https://encrypta-2-0.onrender.com/' },
+      { label: 'Open the live app', href: 'https://encrypta-2-0.onrender.com/' },
       { label: 'Source on GitHub', href: 'https://github.com/jxzxl07/Encrypta' },
     ],
     aliases: ['encrypta', 'encryption', 'encrypted', 'security', 'secure', 'crypto', 'cryptography', 'messaging', 'chat', 'e2e', 'end to end'],
@@ -212,7 +212,7 @@ export const projects: Project[] = [
     ],
     stack: ['Python', 'FastAPI', 'MediaPipe', 'ONNX Runtime', 'scikit-learn', 'React', 'Docker'],
     links: [
-      { label: 'Try it', href: 'https://creaselab.onrender.com/' },
+      { label: 'Open the live app', href: 'https://creaselab.onrender.com/' },
       { label: 'Source on GitHub', href: 'https://github.com/jxzxl07/Cricket-Biomechanics-Engine' },
     ],
     aliases: ['creaselab', 'crease lab', 'cricket', 'biomechanics', 'computer vision', 'vision', 'pose', 'ml', 'machine learning', 'sport', 'sports', 'batting', 'bowling'],
@@ -258,7 +258,7 @@ export const projects: Project[] = [
     ],
     stack: ['Python', 'FastAPI', 'Cytoscape.js', 'Docker', 'Azure Container Apps'],
     links: [
-      { label: 'Try it', href: 'https://routing-sim.wonderfuldesert-1933bece.uksouth.azurecontainerapps.io/' },
+      { label: 'Open the live app', href: 'https://routing-sim.wonderfuldesert-1933bece.uksouth.azurecontainerapps.io/' },
       { label: 'Source on GitHub', href: 'https://github.com/jxzxl07/Routing-Protocol-Simulator' },
     ],
     aliases: ['routing', 'router', 'routers', 'network', 'networking', 'simulator', 'dijkstra', 'bellman ford', 'bellman-ford', 'ospf', 'rip', 'count to infinity'],

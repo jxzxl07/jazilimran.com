@@ -105,13 +105,13 @@ const { slug } = Astro.props;
     const square = document.createElement('canvas');
     square.width = square.height = 400;
     const sctx = square.getContext('2d')!;
-    const row = canvas.closest('li') ?? canvas;
+    const row = canvas.closest('li, .pv-host') ?? canvas;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let t0 = performance.now();
     const paint = (t: number) => {
       drawPose(sctx, t, { scale: 1.5 });
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(square, 0, 0, 400, 400, (canvas.width - 450) / 2, -10, 450, 450);
+      ctx.drawImage(square, 0, 0, 400, 400, (canvas.width - 420) / 2, 0, 420, 420);
     };
     const loop = (now: number) => {
       const active = row.classList.contains('inview') || row.matches(':hover');

@@ -1,0 +1,169 @@
+---
+// Draws a project's architecture as an SVG. Nodes sit on a grid; edges are
+// curves between facing sides, and packets travel along the active ones.
+import type { Flow } from '../data/flows';
+
+interface Props {
+  flow: Flow;
+  name: string;
+}
+const { flow, name } = Astro.props;
+
+const W = 188, H = 66, COL = 222, ROW = 108, PAD = 24;
+const maxCol = Math.max(...flow.nodes.map((n) => n.col));
+const maxRow = Math.max(...flow.nodes.map((n) => n.row));
+const vw = PAD * 2 + maxCol * COL + W;
+const vh = PAD * 2 + maxRow * ROW + H;
+const pos = Object.fromEntries(flow.nodes.map((n) => [n.id, { x: PAD + n.col * COL, y: PAD + n.row * ROW, ...n }]));
+
+function edgePath(aId: string, bId: string) {
+  const a = pos[aId], b = pos[bId];
+  if (a.col !== b.col) {
+    const dir = b.col > a.col ? 1 : -1;
+    const x1 = dir > 0 ? a.x + W : a.x, y1 = a.y + H / 2;
+    const x2 = dir > 0 ? b.x : b.x + W, y2 = b.y + H / 2;
+    const dx = (x2 - x1) / 2;
+    return `M${x1} ${y1} C${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+  }
+  const dir = b.row > a.row ? 1 : -1;
+  const x = a.x + W / 2;
+  const y1 = dir > 0 ? a.y + H : a.y, y2 = dir > 0 ? b.y : b.y + H;
+  return `M${x} ${y1} L${x} ${y2}`;
+}
+const edges = flow.edges.map(([a, b], i) => ({ a, b, d: edgePath(a, b), i }));
+---
+
+<figure class="flow" data-flow={JSON.stringify(flow.steps)}>
+  <svg viewBox={`0 0 ${vw} ${vh}`} role="img" aria-label={`Architecture of ${name}`}>
+    <g class="edges">
+      {
+        edges.map((e) => (
+          <g class="fe" data-a={e.a} data-b={e.b}>
+            <path d={e.d} class="wire" />
+            <path d={e.d} class="flowline" />
+            <circle r="3.2" class="pk">
+              <animateMotion dur={`${1.6 + (e.i % 3) * 0.35}s`} repeatCount="indefinite" path={e.d} />
+            </circle>
+          </g>
+        ))
+      }
+    </g>
+    <g class="nodes">
+      {
+        flow.nodes.map((n) => {
+          const p = pos[n.id];
+          return (
+            <g class="fn" data-id={n.id} transform={`translate(${p.x} ${p.y})`}>
+              <rect width={W} height={H} rx="9" />
+              <text x="14" y={n.sub ? 28 : 38} class="t">
+                {n.label}
+              </text>
+              {n.sub && (
+                <text x="14" y="48" class="s">
+                  {n.sub}
+                </text>
+              )}
+            </g>
+          );
+        })
+      }
+    </g>
+  </svg>
+</figure>
+
+<style>
+  .flow {
+    margin: 0;
+    padding: clamp(10px, 2vw, 20px);
+    border: 1px solid var(--line-2);
+    border-radius: 14px;
+    background:
+      radial-gradient(circle, var(--line) 1px, transparent 1.2px) 0 0 / 18px 18px,
+      var(--bg-2);
+  }
+  svg {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .wire {
+    fill: none;
+    stroke: var(--line-2);
+    stroke-width: 1.5;
+    transition: stroke 0.4s, opacity 0.4s;
+  }
+  .flowline {
+    fill: none;
+    stroke: var(--text);
+    stroke-width: 1.5;
+    stroke-dasharray: 3 7;
+    opacity: 0;
+    transition: opacity 0.4s;
+    animation: dash 0.9s linear infinite;
+  }
+  @keyframes dash {
+    to {
+      stroke-dashoffset: -10;
+    }
+  }
+  .pk {
+    fill: var(--text);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .fn rect {
+    fill: var(--bg);
+    stroke: var(--line-2);
+    stroke-width: 1.2;
+    transition: stroke 0.4s, fill 0.4s, opacity 0.4s;
+  }
+  .fn text {
+    font-family: var(--mono);
+    transition: fill 0.4s, opacity 0.4s;
+  }
+  .fn .t {
+    font-size: 15px;
+    fill: var(--text);
+  }
+  .fn .s {
+    font-size: 11.5px;
+    fill: var(--faint);
+  }
+  .fn,
+  .fe {
+    transition: opacity 0.45s;
+  }
+
+  /* Nothing selected: the whole system, running quietly. */
+  :global(.flow:not([data-active])) .fe .pk {
+    opacity: 0.55;
+  }
+
+  /* A step selected: its parts light up, the rest recede. */
+  :global(.flow[data-active]) .fn:not(.on),
+  :global(.flow[data-active]) .fe:not(.on) {
+    opacity: 0.38;
+  }
+  :global(.flow .fn.on) rect {
+    stroke: var(--text);
+    fill: var(--bg-3);
+  }
+  :global(.flow .fn.on) .s {
+    fill: var(--muted);
+  }
+  :global(.flow .fe.on) .wire {
+    stroke: var(--muted);
+  }
+  :global(.flow .fe.on) .flowline,
+  :global(.flow .fe.on) .pk {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flowline {
+      animation: none;
+    }
+    .pk {
+      display: none;
+    }
+  }
+</style>

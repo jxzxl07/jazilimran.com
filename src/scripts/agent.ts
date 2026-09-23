@@ -301,7 +301,10 @@ async function perform(intent: Intent, rest: Intent[]): Promise<'continue' | 'na
       await pointAt(demo, 'region · live demo');
       s.ok();
       const play = $<HTMLButtonElement>('[data-agent-play]', demo);
-      if (play) {
+      if (play && demo.dataset.played) {
+        log.note('The demo is already running.');
+      } else if (play) {
+        demo.dataset.played = '1';
         await pointAt(play);
         await sleep(200);
         if (await press(play)) play.click();

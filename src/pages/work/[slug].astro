@@ -1,6 +1,9 @@
 ---
 import Base from '../../layouts/Base.astro';
+import ProjectPreview from '../../components/ProjectPreview.astro';
+import ArchFlow from '../../components/ArchFlow.astro';
 import { projects, type Project } from '../../data/projects';
+import { flows } from '../../data/flows';
 import JevBarDemo from '../../components/demos/JevBarDemo.astro';
 import NightWatchDemo from '../../components/demos/NightWatchDemo.astro';
 import EncryptaDemo from '../../components/demos/EncryptaDemo.astro';
@@ -11,11 +14,15 @@ import RoutingDemo from '../../components/demos/RoutingDemo.astro';
 export function getStaticPaths() {
   return projects.map((p, i) => ({
     params: { slug: p.slug },
-    props: { p, next: projects[(i + 1) % projects.length] },
+    props: {
+      p,
+      prev: projects[(i - 1 + projects.length) % projects.length],
+      next: projects[(i + 1) % projects.length],
+    },
   }));
 }
 
-const { p, next } = Astro.props as { p: Project; next: Project };
+const { p, prev, next } = Astro.props as { p: Project; prev: Project; next: Project };
 const demos: Record<string, any> = {
   jevbar: JevBarDemo,
   nightwatch: NightWatchDemo,
@@ -25,105 +32,248 @@ const demos: Record<string, any> = {
   routing: RoutingDemo,
 };
 const Demo = demos[p.slug];
+const flow = flows[p.slug];
 ---
 
 <Base page="project" slug={p.slug} title={p.name} description={p.summary}>
+  <div class="progress" aria-hidden="true"><i id="progress"></i></div>
   <article>
     <header class="head">
       <div class="wrap">
         <a class="back mono" href="/#work">← All work</a>
-        <p class="label meta">
-          <span>{p.index}</span><span>{p.kind}</span><span>{p.year}</span>
-          {p.context && <span>{p.context}</span>}
-        </p>
-        <h1 style={`view-transition-name: vt-${p.slug}`}>{p.name}</h1>
-        <p class="lede">{p.summary}</p>
+        <div class="head-grid">
+          <div class="head-main">
+            <p class="meta mono">
+              <span class="idx">{p.index} / 06</span>
+              <span>{p.kind}</span>
+              <span>{p.year}</span>
+            </p>
+            <h1 style={`view-transition-name: vt-${p.slug}`}>{p.name}</h1>
+            {p.context && <p class="context mono">{p.context}</p>}
+            <p class="lede">{p.summary}</p>
+            <div class="links">
+              {
+                p.links.map((l, i) => (
+                  <a class={`btn ${i === 0 ? 'primary' : ''}`} href={l.href} rel="noopener">
+                    {l.label} ↗
+                  </a>
+                ))
+              }
+            </div>
+          </div>
+          <div class="head-visual pv-host inview">
+            <ProjectPreview slug={p.slug} />
+          </div>
+        </div>
         <div class="stats">
           {
             p.stats.map((s) => (
               <div class="stat">
-                <span class="v mono">{s.value}</span>
+                <span class="v mono" data-count={s.value}>
+                  {s.value}
+                </span>
                 <span class="l">{s.label}</span>
               </div>
             ))
           }
-        </div>
-        <div class="links">
-          {p.links.map((l, i) => <a class={`btn ${i === 0 ? 'primary' : ''}`} href={l.href} rel="noopener">{l.label} ↗</a>)}
         </div>
       </div>
     </header>
 
     <section class="demo-wrap" data-agent-demo aria-label="Live demo">
       <div class="wrap">
-        <p class="demo-hint mono">
-          <span>Live demo</span>
+        <div class="part-head">
+          <p class="label">01 · Try it</p>
           <button class="chip" type="button" data-ask="Run the demo">Ask the agent to run it</button>
-        </p>
+        </div>
         <Demo />
       </div>
     </section>
 
-    <section class="body">
-      <div class="wrap grid">
-        <div class="side">
-          <p class="label">The problem</p>
+    <section class="problem">
+      <div class="wrap">
+        <p class="label">02 · The problem</p>
+        <div class="problem-body">
+          <p class="pull">{p.problem[0]}</p>
+          {p.problem.slice(1).map((t) => <p class="rest">{t}</p>)}
         </div>
-        <div class="prose">
-          {p.problem.map((t) => <p>{t}</p>)}
-        </div>
+      </div>
+    </section>
 
-        <div class="side">
-          <p class="label">How it works</p>
+    <section class="how" aria-labelledby="how-h">
+      <div class="wrap">
+        <div class="part-head">
+          <p class="label" id="how-h">03 · How it works</p>
+          <p class="mono hint">Scroll the steps. The diagram follows.</p>
         </div>
-        <ol class="how">
-          {
-            p.how.map((h, i) => (
-              <li>
-                <span class="mono n">{String(i + 1).padStart(2, '0')}</span>
-                <h3>{h.title}</h3>
-                <p>{h.body}</p>
-              </li>
-            ))
-          }
-        </ol>
-
-        {
-          p.honest && (
-            <>
-              <div class="side">
-                <p class="label">Stated plainly</p>
-              </div>
-              <div class="prose honest">
-                {p.honest.map((t) => <p>{t}</p>)}
-              </div>
-            </>
-          )
-        }
-
-        <div class="side">
-          <p class="label">Built with</p>
+        <div class="how-grid">
+          <div class="how-flow">
+            <ArchFlow flow={flow} name={p.name} />
+          </div>
+          <ol class="steps">
+            {
+              p.how.map((h, i) => (
+                <li class="step" data-i={i} tabindex="0">
+                  <span class="mono n">{String(i + 1).padStart(2, '0')}</span>
+                  <h3>{h.title}</h3>
+                  <p>{h.body}</p>
+                </li>
+              ))
+            }
+          </ol>
         </div>
+      </div>
+    </section>
+
+    {
+      p.honest && (
+        <section class="honest">
+          <div class="wrap">
+            <p class="label">04 · Stated plainly</p>
+            <div class="honest-body">
+              {p.honest.map((t) => (
+                <p>{t}</p>
+              ))}
+            </div>
+          </div>
+        </section>
+      )
+    }
+
+    <section class="stack">
+      <div class="wrap stack-row">
+        <p class="label">Built with</p>
         <ul class="tags">
           {p.stack.map((s) => <li>{s}</li>)}
         </ul>
       </div>
     </section>
 
-    <nav class="next" aria-label="Next project">
-      <div class="wrap">
-        <a href={`/work/${next.slug}/`} data-agent-project={next.slug} aria-label={next.name}>
-          <span class="label">Next · {next.index}</span>
-          <span class="next-name">{next.name} →</span>
+    <nav class="pn" aria-label="More projects">
+      <div class="wrap pn-grid">
+        <a href={`/work/${prev.slug}/`} class="pn-link prev" aria-label={`Previous: ${prev.name}`}>
+          <span class="label">← Previous</span>
+          <span class="pn-name">{prev.name}</span>
+        </a>
+        <a href={`/work/${next.slug}/`} class="pn-link next" data-agent-project={next.slug} aria-label={next.name}>
+          <span class="label">Next →</span>
+          <span class="pn-name">{next.name}</span>
+          <span class="pn-pv pv-host inview"><ProjectPreview slug={next.slug} /></span>
         </a>
       </div>
     </nav>
   </article>
 </Base>
 
+<script>
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Reading progress.
+  const bar = document.getElementById('progress')!;
+  const onScroll = () => {
+    const h = document.documentElement.scrollHeight - innerHeight;
+    bar.style.transform = `scaleX(${h > 0 ? scrollY / h : 0})`;
+  };
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Numbers count up the first time they appear.
+  const counters = document.querySelectorAll<HTMLElement>('[data-count]');
+  const countIO = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      countIO.unobserve(e.target);
+      const el = e.target as HTMLElement;
+      const m = el.dataset.count!.match(/^(\d[\d,]*)(.*)$/);
+      if (!m || reduced) continue;
+      const target = +m[1].replace(/,/g, '');
+      const comma = m[1].includes(',');
+      const t0 = performance.now();
+      const tick = (now: number) => {
+        const u = Math.min(1, (now - t0) / 1100);
+        const v = Math.round(target * (1 - Math.pow(1 - u, 3)));
+        el.textContent = (comma ? v.toLocaleString('en-GB') : String(v)) + m[2];
+        if (u < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }
+  });
+  counters.forEach((c) => countIO.observe(c));
+
+  // The demo plays itself the first time it's mostly on screen.
+  const demo = document.querySelector<HTMLElement>('[data-agent-demo]');
+  const play = demo?.querySelector<HTMLButtonElement>('[data-agent-play]');
+  if (demo && play) {
+    const demoIO = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting || demo.dataset.played) return;
+        demo.dataset.played = '1';
+        demoIO.disconnect();
+        setTimeout(() => play.click(), 300);
+      },
+      { threshold: 0.25 },
+    );
+    demoIO.observe(demo);
+  }
+
+  // Scroll-linked diagram: the step in the middle of the screen lights its parts.
+  const flow = document.querySelector<HTMLElement>('.flow');
+  const steps = [...document.querySelectorAll<HTMLElement>('.step')];
+  if (flow) {
+    const sets: string[][] = JSON.parse(flow.dataset.flow!);
+    const activate = (i: number | null) => {
+      steps.forEach((s, j) => s.classList.toggle('active', j === i));
+      if (i === null) {
+        delete flow.dataset.active;
+        flow.querySelectorAll('.on').forEach((n) => n.classList.remove('on'));
+        return;
+      }
+      const set = new Set(sets[i]);
+      flow.dataset.active = String(i);
+      flow.querySelectorAll<SVGGElement>('.fn').forEach((n) => n.classList.toggle('on', set.has(n.dataset.id!)));
+      flow.querySelectorAll<SVGGElement>('.fe').forEach((e) => e.classList.toggle('on', set.has(e.dataset.a!) && set.has(e.dataset.b!)));
+    };
+    const stepIO = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) activate(+(e.target as HTMLElement).dataset.i!);
+      },
+      { rootMargin: '-45% 0px -45% 0px' },
+    );
+    steps.forEach((s) => {
+      stepIO.observe(s);
+      s.addEventListener('mouseenter', () => activate(+s.dataset.i!));
+      s.addEventListener('focus', () => activate(+s.dataset.i!));
+    });
+    // Leaving the section upwards returns the diagram to the whole system.
+    new IntersectionObserver((entries) => {
+      const e = entries[0];
+      if (!e.isIntersecting && e.boundingClientRect.top > 0) activate(null);
+    }).observe(steps[0]);
+  }
+</script>
+
 <style>
+  .progress {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    z-index: 41;
+    pointer-events: none;
+  }
+  .progress i {
+    display: block;
+    height: 100%;
+    background: var(--text);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+    opacity: 0.6;
+  }
+
+  /* ---------- Header ---------- */
   .head {
-    padding: clamp(40px, 7vw, 88px) 0 clamp(40px, 6vw, 64px);
+    padding: clamp(32px, 5vw, 64px) 0 0;
   }
   .back {
     font-size: 12px;
@@ -133,53 +283,94 @@ const Demo = demos[p.slug];
   .back:hover {
     color: var(--text);
   }
+  .head-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: clamp(28px, 5vw, 72px);
+    align-items: center;
+    margin-top: 32px;
+  }
   .meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px 18px;
-    margin: 36px 0 18px;
+    gap: 6px 22px;
+    margin: 0 0 18px;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .meta .idx {
+    color: var(--faint);
   }
   h1 {
     font-weight: 380;
-    font-size: clamp(48px, 9vw, 120px);
-    line-height: 0.98;
+    font-size: clamp(52px, 8vw, 112px);
+    line-height: 0.96;
     letter-spacing: -0.035em;
     margin: 0;
+    text-wrap: balance;
+  }
+  .context {
+    margin: 18px 0 0;
+    font-size: 12.5px;
+    color: var(--text);
+    display: inline-block;
+    padding: 5px 10px;
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
   }
   .lede {
-    max-width: 34em;
-    font-size: clamp(20px, 2vw, 25px);
+    max-width: 30em;
+    font-size: clamp(19px, 1.7vw, 23px);
     line-height: 1.45;
     color: var(--muted);
-    margin: 28px 0 0;
+    margin: 24px 0 28px;
     text-wrap: pretty;
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .head-visual :global(.pv) {
+    border-radius: 16px;
+    box-shadow: 0 40px 80px -40px rgb(0 0 0 / 0.6);
+    font-size: clamp(11px, 1.2vw, 14px);
   }
   .stats {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     border-top: 1px solid var(--line);
     border-bottom: 1px solid var(--line);
-    margin: 48px 0 32px;
+    margin: clamp(40px, 6vw, 72px) 0 0;
   }
   .stat {
     display: grid;
     gap: 6px;
-    padding: 22px 20px 22px 0;
+    padding: 24px 20px 24px 0;
   }
   .stat + .stat {
-    padding-left: 20px;
+    padding-left: 24px;
     border-left: 1px solid var(--line);
   }
   .stat .v {
-    font-size: clamp(22px, 2.6vw, 32px);
+    font-size: clamp(26px, 3vw, 40px);
     letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
   }
   .stat .l {
     font-size: 15px;
     color: var(--muted);
     line-height: 1.35;
   }
-  @media (max-width: 720px) {
+  @media (max-width: 860px) {
+    .head-grid {
+      grid-template-columns: 1fr;
+    }
+    .head-visual {
+      max-width: 520px;
+    }
     .stats {
       grid-template-columns: 1fr;
     }
@@ -189,103 +380,216 @@ const Demo = demos[p.slug];
       border-top: 1px solid var(--line);
     }
   }
-  .links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .demo-wrap {
-    padding-bottom: clamp(56px, 9vw, 110px);
-  }
-  .demo-hint {
+
+  /* ---------- Parts ---------- */
+  .part-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin: 0 0 14px;
-    font-size: 12px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    margin-bottom: 18px;
   }
-  .demo-hint .chip {
-    text-transform: none;
-    letter-spacing: 0;
-  }
-  .body {
-    border-top: 1px solid var(--line);
-    padding: clamp(56px, 9vw, 110px) 0;
-  }
-  .grid {
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 28px 40px;
-  }
-  .grid > .side {
-    padding-top: 6px;
-  }
-  .grid > :not(.side) {
-    margin-bottom: 48px;
-  }
-  .prose p {
-    margin: 0 0 1em;
-    max-width: 38em;
-    text-wrap: pretty;
-  }
-  .honest p {
-    padding-left: 16px;
-    border-left: 2px solid var(--line-2);
-    color: var(--muted);
-  }
-  .how {
-    list-style: none;
+  .part-head .label {
     margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 36px 40px;
   }
-  .how .n {
+  .hint {
+    margin: 0;
     font-size: 12px;
     color: var(--faint);
   }
-  .how h3 {
-    font-weight: 450;
-    font-size: 22px;
-    line-height: 1.25;
-    margin: 8px 0 8px;
+  .demo-wrap {
+    padding: clamp(56px, 8vw, 100px) 0;
   }
-  .how p {
+
+  .problem {
+    border-top: 1px solid var(--line);
+    padding: clamp(56px, 8vw, 110px) 0;
+  }
+  .problem-body {
+    margin-top: 24px;
+    max-width: 980px;
+  }
+  .pull {
+    font-size: clamp(26px, 3.2vw, 40px);
+    line-height: 1.22;
+    letter-spacing: -0.015em;
+    margin: 0 0 28px;
+    text-wrap: pretty;
+  }
+  .rest {
+    font-size: 20px;
+    color: var(--muted);
+    max-width: 38em;
+    margin: 0 0 1em;
+    text-wrap: pretty;
+  }
+
+  /* ---------- How it works: sticky diagram, scrolling steps ---------- */
+  .how {
+    border-top: 1px solid var(--line);
+    padding: clamp(56px, 8vw, 110px) 0;
+  }
+  .how-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+    gap: clamp(28px, 4vw, 56px);
+    align-items: start;
+  }
+  .how-flow {
+    position: sticky;
+    top: 22vh;
+  }
+  .steps {
+    list-style: none;
     margin: 0;
-    font-size: 17px;
+    padding: 0;
+  }
+  .step {
+    padding: 28px 0 28px 22px;
+    min-height: 42vh;
+    border-left: 2px solid var(--line);
+    transition: border-color 0.4s, opacity 0.4s;
+    opacity: 0.45;
+    outline: none;
+    cursor: default;
+  }
+  .step:first-child {
+    padding-top: 0;
+  }
+  .step.active {
+    border-color: var(--text);
+    opacity: 1;
+  }
+  .step .n {
+    font-size: 12px;
+    color: var(--faint);
+  }
+  .step h3 {
+    font-weight: 420;
+    font-size: clamp(22px, 2vw, 28px);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 8px 0 10px;
+  }
+  .step p {
+    margin: 0;
+    font-size: 18px;
     color: var(--muted);
     text-wrap: pretty;
   }
-  @media (max-width: 860px) {
-    .grid {
+  @media (max-width: 960px) {
+    .how-grid {
       grid-template-columns: 1fr;
-      gap: 12px;
     }
-    .how {
-      grid-template-columns: 1fr;
+    .how-flow {
+      position: static;
+      overflow-x: auto;
+      margin: 0 calc(var(--gutter) * -1);
+      padding: 0 var(--gutter) 8px;
+    }
+    .how-flow :global(.flow) {
+      min-width: 720px;
+    }
+    .step {
+      min-height: 0;
+      padding-bottom: 36px;
     }
   }
-  .next {
+
+  .honest {
+    border-top: 1px solid var(--line);
+    padding: clamp(56px, 8vw, 100px) 0;
+  }
+  .honest-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 24px;
+  }
+  .honest-body p {
+    margin: 0;
+    padding: 20px 22px;
+    border: 1px solid var(--line-2);
+    border-radius: 12px;
+    font-size: 18px;
+    color: var(--muted);
+    text-wrap: pretty;
+  }
+
+  .stack {
+    border-top: 1px solid var(--line);
+    padding: 36px 0;
+  }
+  .stack-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px 32px;
+  }
+  .stack-row .label {
+    margin: 0;
+  }
+
+  /* ---------- Previous / next ---------- */
+  .pn {
     border-top: 1px solid var(--line);
   }
-  .next a {
+  .pn-grid {
     display: grid;
-    gap: 8px;
-    padding: clamp(48px, 8vw, 96px) 0;
+    grid-template-columns: 1fr 1.6fr;
+  }
+  .pn-link {
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    padding: clamp(40px, 6vw, 72px) 0;
     text-decoration: none;
   }
-  .next-name {
-    font-size: clamp(34px, 6vw, 72px);
-    line-height: 1;
-    letter-spacing: -0.03em;
+  .pn-link.next {
+    grid-template-columns: 1fr 260px;
+    column-gap: 32px;
+    padding-left: clamp(20px, 4vw, 48px);
+    border-left: 1px solid var(--line);
+  }
+  .pn-link.next .label,
+  .pn-link.next .pn-name {
+    grid-column: 1;
+  }
+  .pn-pv {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    transition: transform 0.5s var(--ease);
+  }
+  .pn-link:hover .pn-pv {
+    transform: translateY(-4px) rotate(-0.8deg);
+  }
+  .pn-name {
+    font-size: clamp(30px, 4.4vw, 56px);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
     transition: color 0.2s;
   }
-  .next a:hover .next-name {
+  .pn-link.prev .pn-name {
+    font-size: clamp(24px, 2.6vw, 34px);
     color: var(--muted);
+  }
+  .pn-link:hover .pn-name {
+    color: var(--text);
+  }
+  @media (max-width: 860px) {
+    .pn-grid {
+      grid-template-columns: 1fr;
+    }
+    .pn-link.next {
+      grid-template-columns: 1fr;
+      padding-left: 0;
+      border-left: 0;
+      border-top: 1px solid var(--line);
+    }
+    .pn-pv {
+      grid-column: 1;
+      grid-row: auto;
+      max-width: 320px;
+    }
   }
 </style>

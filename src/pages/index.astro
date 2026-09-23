@@ -30,11 +30,14 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
       <div class="hero-main">
         <p class="label hero-kicker reveal-now" style="--d:0">Computer Science · University of Cambridge</p>
         <h1 class="reveal-now" style="--d:1">
-          I build software that acts on its own, <em>and the guardrails that make it safe to.</em>
+          <span>I build software</span>
+          <span>that acts on its own,</span>
+          <em>and the guardrails</em>
+          <em>that make it safe to.</em>
         </h1>
         <p class="lede reveal-now" style="--d:2">
-          I’m Jazil, a second-year at Gonville &amp; Caius. I build agents that do real work on real screens and
-          services, and I spend as long on what they must never do as on what they can.
+          I’m Jazil, a Computer Science student at Gonville &amp; Caius, Cambridge. My projects click, type, repair
+          and mark, and each one is built around a list of things it must never do.
         </p>
 
         <div class="ask reveal-now" style="--d:3">
@@ -47,8 +50,8 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
             <button class="ask-go" type="submit">Run <kbd>↵</kbd></button>
           </form>
           <p class="ask-lead mono">
-            This page has an agent built in. Tell it what you want, or hold <kbd>⌘⇧Space</kbd> and say it. It acts in
-            front of you, and it won’t press send.
+            This page has an agent built in. Tell it what you want<span class="desk-only">, or hold <kbd>⌘⇧Space</kbd> and say it</span>.
+            It acts in front of you, and it won’t press send.
           </p>
           <div class="ask-chips">
             {chips.map((c) => <button class="chip" type="button" data-ask={c}>{c}</button>)}
@@ -81,7 +84,6 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
   <section class="section" id="work" aria-labelledby="work-h">
     <div class="wrap">
       <div class="section-head reveal">
-        <span class="section-n mono">01</span>
         <div>
           <p class="label">Work</p>
           <h2 id="work-h">Six things I’ve built, and what each one refuses to do.</h2>
@@ -121,7 +123,6 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
   <section class="section" id="log" aria-labelledby="log-h">
     <div class="wrap">
       <div class="section-head reveal">
-        <span class="section-n mono">02</span>
         <div>
           <p class="label">Log</p>
           <h2 id="log-h">Four years, most recent first.</h2>
@@ -150,7 +151,6 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
   <section class="section" id="about" aria-labelledby="about-h">
     <div class="wrap">
       <div class="section-head reveal">
-        <span class="section-n mono">03</span>
         <div>
           <p class="label">About</p>
           <h2 id="about-h">I taught networks, then learned to build on top of them.</h2>
@@ -212,7 +212,6 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
   <section class="section" id="contact" aria-labelledby="contact-h">
     <div class="wrap">
       <div class="section-head reveal">
-        <span class="section-n mono">04</span>
         <div>
           <p class="label">Contact</p>
           <h2 id="contact-h">Internships, collaborations, or a question about something here.</h2>
@@ -334,12 +333,14 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
   }
   h1 {
     font-weight: 380;
-    font-size: clamp(42px, 6.4vw, 86px);
+    font-size: clamp(38px, 5.6vw, 80px);
     line-height: 1.02;
     letter-spacing: -0.028em;
     margin: 0;
-    max-width: 15.5ch;
-    text-wrap: balance;
+  }
+  h1 span,
+  h1 em {
+    display: block;
   }
   h1 em {
     font-style: italic;
@@ -475,12 +476,12 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
   .insp-list {
     list-style: none;
     margin: 0;
-    padding: 6px 0;
+    padding: 14px 0 6px;
     height: 330px;
     overflow: auto;
     font-size: 11.5px;
     scrollbar-width: thin;
-    mask-image: linear-gradient(transparent, #000 6%, #000 90%, transparent);
+    mask-image: linear-gradient(transparent, #000 4%, #000 88%, transparent);
   }
   :global(.insp-list li) {
     display: grid;
@@ -531,10 +532,12 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
   }
   .now p {
     margin: 0;
-    padding-top: 18px;
-    border-top: 1px solid var(--line);
-    font-size: 12.5px;
-    color: var(--muted);
+    padding: 14px 18px;
+    border: 1px solid var(--line-2);
+    border-radius: 10px;
+    background: var(--bg-2);
+    font-size: 13.5px;
+    color: var(--text);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -556,9 +559,17 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
       box-shadow: 0 0 0 5px color-mix(in srgb, var(--ok) 20%, transparent);
     }
   }
+  .inspector {
+    min-width: 0;
+  }
+  @media (hover: none) {
+    .desk-only {
+      display: none;
+    }
+  }
   @media (max-width: 1040px) {
     .hero-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
     .inspector {
       position: static;
@@ -568,19 +579,16 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
       height: 200px;
     }
   }
+  @media (max-width: 720px) {
+    .insp-list,
+    .insp-foot {
+      display: none;
+    }
+  }
 
   /* ---------- Section heads ---------- */
   .section-head {
-    display: grid;
-    grid-template-columns: 120px 1fr;
-    gap: 24px;
-    align-items: start;
     margin-bottom: 56px;
-  }
-  .section-n {
-    font-size: 13px;
-    color: var(--faint);
-    padding-top: 6px;
   }
   .section-head .label {
     margin: 0 0 10px;
@@ -593,12 +601,6 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
     margin: 0;
     max-width: 20ch;
     text-wrap: balance;
-  }
-  @media (max-width: 720px) {
-    .section-head {
-      grid-template-columns: 1fr;
-      gap: 6px;
-    }
   }
 
   .reveal {
@@ -620,7 +622,7 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
   }
   .row {
     display: grid;
-    grid-template-columns: 64px minmax(0, 1fr) 300px;
+    grid-template-columns: 56px minmax(0, 1fr) minmax(280px, 380px);
     gap: clamp(20px, 4vw, 56px);
     align-items: center;
     padding: 36px 16px;
@@ -768,13 +770,6 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
     margin: 0 0 1.1em;
     font-size: 20px;
     text-wrap: pretty;
-  }
-  .about-prose p:first-child::first-letter {
-    font-size: 3.2em;
-    float: left;
-    line-height: 0.9;
-    margin: 6px 10px 0 0;
-    color: var(--text);
   }
   .facts {
     margin: 0;

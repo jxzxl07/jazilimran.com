@@ -1,0 +1,428 @@
+---
+// A small, silent loop of each project's idea, shown beside its row on the
+// home page. CSS/SVG, plus the shared pose model for CreaseLab. It only
+// animates while the row is on screen.
+interface Props {
+  slug: string;
+}
+const { slug } = Astro.props;
+---
+
+<div class={`pv pv-${slug}`} aria-hidden="true">
+  {
+    slug === 'jevbar' && (
+      <div class="jb">
+        <span class="lbl">Name</span>
+        <span class="field">
+          <i />
+        </span>
+        <span class="lbl">Why this role?</span>
+        <span class="field tall">
+          <i />
+        </span>
+        <span class="submit">
+          Submit application<b>⊘ refused</b>
+        </span>
+      </div>
+    )
+  }
+  {
+    slug === 'nightwatch' && (
+      <div class="nw">
+        {['A', 'B', 'C'].map((c) => (
+          <div class={`lane lane-${c}`}>
+            <span>{c}</span>
+            <span class="track">
+              <i />
+            </span>
+            <em>{c === 'A' ? 'ship' : c === 'B' ? '✗' : '✓'}</em>
+          </div>
+        ))}
+        <p class="gate">safety gate · held for a human</p>
+      </div>
+    )
+  }
+  {
+    slug === 'encrypta' && (
+      <div class="en">
+        <span class="dev">alice</span>
+        <span class="wire">
+          <i>9f3a·c1e0·77b4</i>
+        </span>
+        <span class="dev">bob</span>
+        <p class="plain a">meet at seven</p>
+        <p class="plain b">meet at seven</p>
+        <p class="srv">server sees: 9f3a·c1e0·77b4…</p>
+      </div>
+    )
+  }
+  {
+    slug === 'tripos-tutor' && (
+      <div class="tt">
+        {[0, 1, 2, 3].map((i) => (
+          <p style={`--i:${i}`}>
+            <b>✓</b>
+            <span />
+          </p>
+        ))}
+        <strong>4/4</strong>
+      </div>
+    )
+  }
+  {
+    slug === 'creaselab' && <canvas class="cl" width="640" height="400" data-pose-preview />
+  }
+  {
+    slug === 'routing' && (
+      <svg class="rt" viewBox="0 0 160 110">
+        <g class="links">
+          <line x1="20" y1="55" x2="60" y2="20" />
+          <line x1="20" y1="55" x2="60" y2="90" />
+          <line x1="60" y1="20" x2="60" y2="90" />
+          <line x1="60" y1="20" x2="105" y2="20" />
+          <line x1="60" y1="90" x2="105" y2="90" />
+          <line x1="105" y1="20" x2="105" y2="90" />
+          <line x1="105" y1="20" x2="142" y2="55" />
+          <line class="broken" x1="105" y1="90" x2="142" y2="55" />
+        </g>
+        <path class="route" d="M20 55 L60 20 L105 20 L142 55" fill="none" />
+        <circle class="packet" r="4" />
+        {[[20, 55], [60, 20], [60, 90], [105, 20], [105, 90], [142, 55]].map(([x, y]) => (
+          <circle class="node" cx={x} cy={y} r="6" />
+        ))}
+      </svg>
+    )
+  }
+</div>
+
+<script>
+  import { drawPose } from '../scripts/pose';
+
+  // Draw the pull shot on loop, but only while the row is on screen or hovered.
+  document.querySelectorAll<HTMLCanvasElement>('canvas[data-pose-preview]').forEach((canvas) => {
+    // Draw into the middle of a wide canvas: the pose lives in a square.
+    const ctx = canvas.getContext('2d')!;
+    const square = document.createElement('canvas');
+    square.width = square.height = 400;
+    const sctx = square.getContext('2d')!;
+    const row = canvas.closest('li') ?? canvas;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let t0 = performance.now();
+    const paint = (t: number) => {
+      drawPose(sctx, t, { scale: 1.5 });
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(square, 0, 0, 400, 400, (canvas.width - 450) / 2, -10, 450, 450);
+    };
+    const loop = (now: number) => {
+      const active = row.classList.contains('inview') || row.matches(':hover');
+      if (active) {
+        // 1.8 s swing, then a 0.8 s hold on the finish.
+        const cycle = ((now - t0) / 2600) % 1;
+        paint(Math.min(1, cycle / 0.7));
+      }
+      requestAnimationFrame(loop);
+    };
+    paint(0.72);
+    if (!reduced) requestAnimationFrame(loop);
+  });
+</script>
+
+<style>
+  .pv {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border: 1px solid var(--line-2);
+    border-radius: 10px;
+    background:
+      linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 16px 16px,
+      linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 16px 16px,
+      var(--bg);
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    --run: paused;
+  }
+  :global(.inview) .pv,
+  :global(.row:hover) .pv {
+    --run: running;
+  }
+  .pv * {
+    animation-play-state: var(--run) !important;
+  }
+
+  /* JevBar: fields fill in order, then the submit is refused */
+  .jb {
+    position: absolute;
+    inset: 12px 14px;
+    display: grid;
+    align-content: start;
+    gap: 4px;
+  }
+  .jb .field {
+    display: block;
+    height: 14px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    background: var(--bg-2);
+    position: relative;
+    overflow: hidden;
+  }
+  .jb .field.tall {
+    height: 24px;
+  }
+  .jb .field i {
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--agent);
+    width: 0;
+    animation: fill1 6s infinite;
+  }
+  .jb .field.tall i {
+    animation-name: fill2;
+    box-shadow: 0 8px 0 var(--agent);
+  }
+  @keyframes fill1 {
+    0% { width: 0; }
+    12%, 100% { width: 55%; }
+  }
+  @keyframes fill2 {
+    0%, 14% { width: 0; }
+    34%, 100% { width: 80%; }
+  }
+  .jb .submit {
+    justify-self: start;
+    margin-top: 6px;
+    padding: 3px 7px;
+    border-radius: 4px;
+    background: var(--text);
+    color: var(--bg);
+    position: relative;
+    animation: refuse 6s infinite;
+  }
+  .jb .submit b {
+    position: absolute;
+    left: calc(100% + 6px);
+    top: 3px;
+    color: var(--bad);
+    font-weight: 400;
+    white-space: nowrap;
+    opacity: 0;
+    animation: show 6s infinite;
+  }
+  @keyframes refuse {
+    0%, 44% { box-shadow: none; }
+    48%, 90% { box-shadow: 0 0 0 2px var(--bad); }
+    100% { box-shadow: none; }
+  }
+  @keyframes show {
+    0%, 46% { opacity: 0; }
+    50%, 90% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* NightWatch: three fixes race; one fails, one ships */
+  .nw {
+    position: absolute;
+    inset: 16px 14px;
+    display: grid;
+    gap: 9px;
+    align-content: center;
+  }
+  .lane {
+    display: grid;
+    grid-template-columns: 12px 1fr 30px;
+    gap: 8px;
+    align-items: center;
+  }
+  .lane .track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--bg-3);
+    position: relative;
+    overflow: hidden;
+  }
+  .lane .track i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0;
+    background: var(--ok);
+    border-radius: 3px;
+  }
+  .lane em {
+    font-style: normal;
+    opacity: 0;
+  }
+  .lane-A i { animation: raceA 5s infinite; }
+  .lane-B i { animation: raceB 5s infinite; }
+  .lane-C i { animation: raceC 5s infinite; }
+  .lane-A em { color: var(--agent); animation: show2 5s infinite; }
+  .lane-B em { color: var(--bad); animation: show2 5s infinite; }
+  .lane-C em { color: var(--ok); animation: show2 5s infinite; }
+  @keyframes raceA { 0% { width: 0; } 50%, 100% { width: 100%; } }
+  @keyframes raceB { 0% { width: 0; background: var(--ok); } 30% { width: 62%; background: var(--ok); } 34%, 100% { width: 62%; background: var(--bad); } }
+  @keyframes raceC { 0% { width: 0; } 62%, 100% { width: 100%; } }
+  @keyframes show2 { 0%, 55% { opacity: 0; } 62%, 95% { opacity: 1; } 100% { opacity: 0; } }
+  .gate {
+    margin: 4px 0 0;
+    color: var(--agent);
+    opacity: 0;
+    animation: show2 5s infinite;
+    animation-delay: 0.4s;
+  }
+
+  /* Encrypta: plaintext in, ciphertext across the wire, plaintext out */
+  .en {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding: 0 14px;
+    gap: 8px;
+  }
+  .en .dev {
+    padding: 4px 6px;
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    background: var(--bg-2);
+    color: var(--text);
+  }
+  .en .wire {
+    position: relative;
+    height: 1px;
+    background: var(--line-2);
+  }
+  .en .wire i {
+    position: absolute;
+    top: -8px;
+    left: 0;
+    font-style: normal;
+    color: var(--agent);
+    white-space: nowrap;
+    animation: travel 4s infinite linear;
+  }
+  @keyframes travel {
+    0% { left: 0; opacity: 0; }
+    10% { opacity: 1; }
+    80% { left: calc(100% - 80px); opacity: 1; }
+    90%, 100% { left: calc(100% - 80px); opacity: 0; }
+  }
+  .en .plain {
+    position: absolute;
+    margin: 0;
+    color: var(--text);
+    font-family: var(--serif);
+    font-size: 12px;
+  }
+  .en .plain.a { left: 14px; top: 22%; animation: out 4s infinite; }
+  .en .plain.b { right: 14px; top: 22%; animation: inn 4s infinite; }
+  .en .srv {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 12%;
+    margin: 0;
+    text-align: center;
+    color: var(--faint);
+  }
+  @keyframes out { 0%, 15% { opacity: 1; } 25%, 100% { opacity: 0.25; } }
+  @keyframes inn { 0%, 78% { opacity: 0; } 88%, 100% { opacity: 1; } }
+
+  /* Tripos Tutor: rubric points tick, the mark lands */
+  .tt {
+    position: absolute;
+    inset: 14px 16px;
+    display: grid;
+    gap: 7px;
+    align-content: center;
+  }
+  .tt p {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 12px 1fr;
+    gap: 6px;
+    align-items: center;
+  }
+  .tt p b {
+    color: var(--ok);
+    font-weight: 400;
+    opacity: 0;
+    animation: tick 5s infinite;
+    animation-delay: calc(var(--i) * 0.45s);
+  }
+  .tt p span {
+    display: block;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--line-2);
+    width: calc(90% - var(--i) * 12%);
+  }
+  @keyframes tick { 0%, 8% { opacity: 0; } 12%, 85% { opacity: 1; } 100% { opacity: 0; } }
+  .tt strong {
+    position: absolute;
+    right: 0;
+    bottom: -4px;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--ok);
+    opacity: 0;
+    animation: tick 5s infinite;
+    animation-delay: 2.1s;
+  }
+
+  /* CreaseLab: the same pose model as the demo, drawn small */
+  .cl {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Routing: a packet takes the shortest path around a broken link */
+  .rt {
+    position: absolute;
+    inset: 6px;
+    width: calc(100% - 12px);
+    height: calc(100% - 12px);
+  }
+  .rt .links line {
+    stroke: var(--line-2);
+    stroke-width: 1.5;
+  }
+  .rt .links .broken {
+    stroke: var(--bad);
+    stroke-dasharray: 3 4;
+  }
+  .rt .route {
+    stroke: var(--agent);
+    stroke-width: 2;
+  }
+  .rt .node {
+    fill: var(--bg);
+    stroke: var(--text);
+    stroke-width: 1.2;
+  }
+  .rt .packet {
+    fill: var(--agent);
+    offset-path: path('M20 55 L60 20 L105 20 L142 55');
+    animation: hop 2.6s infinite linear;
+  }
+  @keyframes hop {
+    from { offset-distance: 0%; }
+    to { offset-distance: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pv * {
+      animation: none !important;
+    }
+    .jb .field i { width: 60%; }
+    .lane i { width: 100%; }
+    .tt p b, .tt strong, .jb .submit b, .lane em { opacity: 1; }
+  }
+</style>

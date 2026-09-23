@@ -67,6 +67,10 @@
 *::after {
   box-sizing: border-box;
 }
+/* An id selector that sets display would otherwise beat the hidden attribute. */
+[hidden] {
+  display: none !important;
+}
 html {
   -webkit-text-size-adjust: 100%;
   scroll-padding-top: 88px;

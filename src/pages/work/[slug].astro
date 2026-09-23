@@ -56,6 +56,10 @@ const Demo = demos[p.slug];
 
     <section class="demo-wrap" data-agent-demo aria-label="Live demo">
       <div class="wrap">
+        <p class="demo-hint mono">
+          <span>Live demo</span>
+          <button class="chip" type="button" data-ask="Run the demo">Ask the agent to run it</button>
+        </p>
         <Demo />
       </div>
     </section>
@@ -193,6 +197,21 @@ const Demo = demos[p.slug];
   .demo-wrap {
     padding-bottom: clamp(56px, 9vw, 110px);
   }
+  .demo-hint {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 14px;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .demo-hint .chip {
+    text-transform: none;
+    letter-spacing: 0;
+  }
   .body {
     border-top: 1px solid var(--line);
     padding: clamp(56px, 9vw, 110px) 0;
@@ -267,6 +286,6 @@ const Demo = demos[p.slug];
     transition: color 0.2s;
   }
   .next a:hover .next-name {
-    color: var(--agent);
+    color: var(--muted);
   }
 </style>

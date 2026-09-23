@@ -1,0 +1,32 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base page="cv" title="Not found">
+  <div class="wrap nf">
+    <p class="label">404</p>
+    <h1>I read this page and found nothing to act on.</h1>
+    <p class="muted">
+      The agent would rather say so than guess where you meant to go. Try the <a href="/">home page</a>, the
+      <a href="/#work">work</a>, or ask it: press <kbd>⌘K</kbd>.
+    </p>
+  </div>
+</Base>
+
+<style>
+  .nf {
+    padding-top: clamp(80px, 16vw, 200px);
+    padding-bottom: clamp(80px, 16vw, 200px);
+    max-width: 900px;
+  }
+  h1 {
+    font-weight: 380;
+    font-size: clamp(40px, 6vw, 72px);
+    line-height: 1.04;
+    letter-spacing: -0.025em;
+    margin: 12px 0 24px;
+  }
+  p {
+    font-size: 20px;
+  }
+</style>

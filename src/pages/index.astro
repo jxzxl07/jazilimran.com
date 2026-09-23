@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import ProjectPreview from '../components/ProjectPreview.astro';
 import { projects } from '../data/projects';
 
 const chips = [
@@ -7,63 +8,138 @@ const chips = [
   'What did he build with Google DeepMind?',
   "I'm Sam from Google, draft an internship enquiry",
 ];
+
+// Months come from each repo's history.
+const log: { when: string; kind: string; what: string; href?: string }[] = [
+  { when: 'Sep 2026', kind: 'project', what: 'JevBar, a macOS agent that fills forms completely and never submits them', href: '/work/jevbar/' },
+  { when: 'Sep 2026', kind: 'hackathon', what: 'NightWatch at the {Tech: Europe} Agentic AI Hack × Google DeepMind', href: '/work/nightwatch/' },
+  { when: 'Sep 2026', kind: 'project', what: 'Encrypta 2.0: end-to-end encryption between people anywhere, not just on one LAN', href: '/work/encrypta/' },
+  { when: 'Jul 2026', kind: 'project', what: 'Tripos Tutor: examiner-style marking for 230+ Cambridge past-paper questions', href: '/work/tripos-tutor/' },
+  { when: 'Jul 2026', kind: 'project', what: 'Routing Protocol Simulator, the tool I wished I’d had when teaching routing loops', href: '/work/routing/' },
+  { when: 'Jun 2026', kind: 'project', what: 'CreaseLab, and throwing out a model that scored well for the wrong reasons', href: '/work/creaselab/' },
+  { when: 'Oct 2025', kind: 'education', what: 'Started Computer Science at Cambridge, Gonville & Caius College' },
+  { when: 'Aug 2025', kind: 'education', what: 'A*A*A*A* at A-level: Maths, Further Maths, Computer Science, Physics' },
+  { when: 'Jul 2024', kind: 'work', what: 'Work shadowing with Hudl’s software and data engineering teams' },
+  { when: 'Jun 2022', kind: 'work', what: 'Networking Instructor at Invirtigo: two years teaching CCNA to 20+ students' },
+];
 ---
 
 <Base page="home">
   <section class="hero">
-    <div class="wrap">
-      <p class="label hero-kicker">Computer Science · University of Cambridge</p>
-      <h1>
-        I build software that acts on its own, <em>and the guardrails that make it safe to.</em>
-      </h1>
-      <p class="lede">
-        I’m Jazil, a second-year at Gonville &amp; Caius. My projects are agents that do real work on real
-        screens and services, and I spend as long on what they must never do as on what they can.
-      </p>
-
-      <div class="ask">
-        <p class="ask-lead">
-          This page has an agent built in. Tell it what you want and watch it act. It won’t press send.
+    <div class="wrap hero-grid">
+      <div class="hero-main">
+        <p class="label hero-kicker reveal-now" style="--d:0">Computer Science · University of Cambridge</p>
+        <h1 class="reveal-now" style="--d:1">
+          I build software that acts on its own, <em>and the guardrails that make it safe to.</em>
+        </h1>
+        <p class="lede reveal-now" style="--d:2">
+          I’m Jazil, a second-year at Gonville &amp; Caius. I build agents that do real work on real screens and
+          services, and I spend as long on what they must never do as on what they can.
         </p>
-        <form class="ask-field" data-agent-inline>
-          <span class="ask-caret" aria-hidden="true">›</span>
-          <input type="text" autocomplete="off" aria-label="Tell this page what you want" placeholder="Show me the cricket project" />
-          <button class="mic" type="button" data-agent-mic aria-label="Talk instead">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
-          </button>
-          <button class="ask-go" type="submit">Run <kbd>↵</kbd></button>
-        </form>
-        <div class="ask-chips">
-          {chips.map((c) => <button class="chip" type="button" data-ask={c}>{c}</button>)}
+
+        <div class="ask reveal-now" style="--d:3">
+          <form class="ask-field" data-agent-inline id="hero-ask">
+            <span class="ask-caret" aria-hidden="true">›</span>
+            <input type="text" autocomplete="off" aria-label="Tell this page what you want" placeholder="Show me the cricket project" />
+            <button class="mic" type="button" data-agent-mic aria-label="Talk instead">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
+            </button>
+            <button class="ask-go" type="submit">Run <kbd>↵</kbd></button>
+          </form>
+          <p class="ask-lead mono">
+            This page has an agent built in. Tell it what you want, or hold <kbd>⌘⇧Space</kbd> and say it. It acts in
+            front of you, and it won’t press send.
+          </p>
+          <div class="ask-chips">
+            {chips.map((c) => <button class="chip" type="button" data-ask={c}>{c}</button>)}
+          </div>
         </div>
-        <p class="ask-status mono" id="agent-status">Reading this page…</p>
       </div>
+
+      <aside class="inspector reveal-now" style="--d:4" aria-label="What the agent can see on this page">
+        <div class="insp-head mono">
+          <span class="dot"></span>
+          <span>what the agent sees</span>
+          <span class="insp-count" id="agent-status">reading…</span>
+        </div>
+        <ol class="insp-list mono" id="insp-list"></ol>
+        <p class="insp-foot mono">
+          Every named control on this page, read the way JevBar reads a Mac: role, then name. Click one and the agent
+          goes there.
+        </p>
+      </aside>
+    </div>
+
+    <div class="wrap now reveal-now" style="--d:5">
+      <p class="mono">
+        <span class="now-dot"></span><b>Now</b> Building JevBar · starting my second year at Cambridge in October ·
+        open to internships for summer 2027
+      </p>
     </div>
   </section>
 
   <section class="section" id="work" aria-labelledby="work-h">
     <div class="wrap">
-      <div class="section-head">
-        <span class="label">01 — Work</span>
-        <h2 id="work-h">Six things I’ve built, and what each one refuses to do.</h2>
+      <div class="section-head reveal">
+        <span class="section-n mono">01</span>
+        <div>
+          <p class="label">Work</p>
+          <h2 id="work-h">Six things I’ve built, and what each one refuses to do.</h2>
+        </div>
       </div>
       <ol class="work">
         {
           projects.map((p) => (
-            <li>
+            <li class="reveal">
               <a href={`/work/${p.slug}/`} class="row" data-agent-project={p.slug} aria-label={p.name}>
                 <span class="row-i mono">{p.index}</span>
                 <span class="row-main">
-                  <span class="row-name" style={`view-transition-name: vt-${p.slug}`}>{p.name}</span>
-                  <span class="row-kind label">{p.kind}</span>
+                  <span class="row-kind label">
+                    {p.kind}
+                    {p.context && <span class="row-ctx"> · hackathon</span>}
+                  </span>
+                  <span class="row-name" style={`view-transition-name: vt-${p.slug}`}>
+                    {p.name}
+                  </span>
                   <span class="row-sum">{p.summary}</span>
+                  <span class="row-stat">
+                    <span class="row-v mono">{p.headline.value}</span>
+                    <span class="row-l">{p.headline.label}</span>
+                  </span>
                 </span>
-                <span class="row-stat">
-                  <span class="row-v mono">{p.headline.value}</span>
-                  <span class="row-l">{p.headline.label}</span>
+                <span class="row-pv">
+                  <ProjectPreview slug={p.slug} />
                 </span>
-                <span class="row-go" aria-hidden="true">→</span>
               </a>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="log" aria-labelledby="log-h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="section-n mono">02</span>
+        <div>
+          <p class="label">Log</p>
+          <h2 id="log-h">Four years, most recent first.</h2>
+        </div>
+      </div>
+      <ol class="log mono">
+        {
+          log.map((l) => (
+            <li class="reveal">
+              <span class="log-when">{l.when}</span>
+              <span class={`log-kind k-${l.kind}`}>{l.kind}</span>
+              {l.href ? (
+                <a class="log-what" href={l.href}>
+                  {l.what}
+                </a>
+              ) : (
+                <span class="log-what">{l.what}</span>
+              )}
             </li>
           ))
         }
@@ -73,26 +149,29 @@ const chips = [
 
   <section class="section" id="about" aria-labelledby="about-h">
     <div class="wrap">
-      <div class="section-head">
-        <span class="label">02 — About</span>
-        <h2 id="about-h">Taught networks, then learned to build on top of them.</h2>
+      <div class="section-head reveal">
+        <span class="section-n mono">03</span>
+        <div>
+          <p class="label">About</p>
+          <h2 id="about-h">I taught networks, then learned to build on top of them.</h2>
+        </div>
       </div>
       <div class="about">
-        <div class="about-prose">
+        <div class="about-prose reveal">
           <p>
-            I started out teaching. For two years I ran CCNA lessons for more than twenty students: subnetting,
-            VLANs, routing protocols, and the moment a traceroute finally makes sense. Explaining how a system
-            fails turned out to be the best way to learn how to build one.
+            Before university I spent two years teaching CCNA to more than twenty students: subnetting, VLANs,
+            routing protocols, and the moment a traceroute finally makes sense. Explaining how a system fails turned
+            out to be the best way to learn how to build one.
           </p>
           <p>
-            Now I read Computer Science at Cambridge, and most of what I build is software that takes action:
-            agents that fill forms, repair services and mark exam answers. The interesting engineering is rarely
-            the action itself. It is the checks around it: what the agent may touch, how it proves it worked, and
-            when it must stop and hand back to a person.
+            Now I read Computer Science at Cambridge, and most of what I build takes action: agents that fill forms,
+            repair services and mark exam answers. The action is rarely the hard part. The hard part is everything
+            around it: what the agent may touch, how it proves it worked, and when it has to stop and hand back to a
+            person.
           </p>
-          <p>Away from the keyboard I play cricket. I captained my school team, which is partly why CreaseLab exists.</p>
+          <p>Off the keyboard it’s cricket. I captained my school side, which is partly why CreaseLab exists.</p>
         </div>
-        <dl class="facts">
+        <dl class="facts reveal">
           <div id="education">
             <dt class="label">Education</dt>
             <dd>
@@ -117,19 +196,13 @@ const chips = [
           </div>
           <div id="skills">
             <dt class="label">Tools</dt>
-            <dd>
-              <span class="muted">Languages</span> Python, Java, OCaml, C, SQL, JavaScript, TypeScript, Swift
-            </dd>
-            <dd>
-              <span class="muted">Building with</span> FastAPI, React, WebCrypto, WebRTC, OpenCV, MediaPipe, Gemini
-            </dd>
-            <dd><span class="muted">Shipping with</span> Docker, GitHub Actions, PostgreSQL, Modal, Render, Linux</dd>
+            <dd><span class="k">Languages</span> Python, Java, OCaml, C, SQL, JavaScript, TypeScript, Swift</dd>
+            <dd><span class="k">Building with</span> FastAPI, React, WebCrypto, WebRTC, OpenCV, MediaPipe, Gemini</dd>
+            <dd><span class="k">Shipping with</span> Docker, GitHub Actions, PostgreSQL, Modal, Render, Linux</dd>
           </div>
           <div>
             <dt class="label">Also</dt>
-            <dd>
-              Academic Achievement Prize, Computer Science Prize, Senior Maths Challenge Gold, cricket team captain
-            </dd>
+            <dd>Academic Achievement Prize, Computer Science Prize, Senior Maths Challenge Gold, cricket team captain</dd>
           </div>
         </dl>
       </div>
@@ -138,28 +211,33 @@ const chips = [
 
   <section class="section" id="contact" aria-labelledby="contact-h">
     <div class="wrap">
-      <div class="section-head">
-        <span class="label">03 — Contact</span>
-        <h2 id="contact-h">Internships, collaborations, or a question about something here.</h2>
+      <div class="section-head reveal">
+        <span class="section-n mono">04</span>
+        <div>
+          <p class="label">Contact</p>
+          <h2 id="contact-h">Internships, collaborations, or a question about something here.</h2>
+        </div>
       </div>
       <div class="contact">
-        <div class="contact-side">
-          <p>
-            Email is quickest: <a class="email" href="mailto:ji297@cam.ac.uk">ji297@cam.ac.uk</a>
+        <div class="contact-side reveal">
+          <p class="big-email">
+            <a class="email" href="mailto:ji297@cam.ac.uk">ji297@cam.ac.uk</a>
+            <button class="chip copy" type="button" id="copy-email">Copy</button>
           </p>
           <p class="muted">
-            Or ask the agent to draft a message for you. It will fill in this form in front of you, then stop.
-            Sending is always your call.
+            Or let the agent draft it. Tell it who you are and what you want, and it fills in this form in front of
+            you, then stops. Sending is always your call.
           </p>
           <button class="chip" type="button" data-ask="I'm a recruiter, draft an internship enquiry">
             Draft an internship enquiry
           </button>
           <p class="links mono">
-            <a href="https://github.com/jxzxl07">github.com/jxzxl07</a><br />
-            <a href="https://www.linkedin.com/in/jazilimran/">linkedin.com/in/jazilimran</a>
+            <a href="https://github.com/jxzxl07">github.com/jxzxl07 ↗</a><br />
+            <a href="https://www.linkedin.com/in/jazilimran/">linkedin.com/in/jazilimran ↗</a><br />
+            <a href="/cv/">CV, on one page →</a>
           </p>
         </div>
-        <form id="contact-form" class="form" aria-label="Contact" novalidate>
+        <form id="contact-form" class="form reveal" aria-label="Contact" novalidate>
           <div class="field">
             <label for="cf-name">Your name</label>
             <input id="cf-name" name="name" autocomplete="name" />
@@ -202,33 +280,65 @@ const chips = [
     location.href = `mailto:ji297@cam.ac.uk?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   });
 
+  const copy = document.getElementById('copy-email')!;
+  copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText('ji297@cam.ac.uk');
+      copy.textContent = 'Copied';
+    } catch {
+      copy.textContent = 'Select it instead';
+    }
+    setTimeout(() => (copy.textContent = 'Copy'), 1800);
+  });
+
   // Cycle the placeholder through real commands, so the field teaches itself.
-  const input = document.querySelector<HTMLInputElement>('[data-agent-inline] input');
+  const input = document.querySelector<HTMLInputElement>('#hero-ask input');
   const examples = ['Show me the cricket project', 'Where does he study?', 'Open NightWatch and run the demo', 'Switch to light mode', 'Type my password'];
   let i = 0;
-  if (input && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (input && !reduced) {
     setInterval(() => {
       if (document.activeElement === input || input.value) return;
       i = (i + 1) % examples.length;
       input.placeholder = examples[i];
     }, 3200);
   }
+
+  // Reveal on scroll, and only animate project previews while they're on screen.
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        e.target.classList.toggle('inview', e.isIntersecting);
+        if (e.isIntersecting) e.target.classList.add('shown');
+      }
+    },
+    { rootMargin: '0px 0px -8% 0px' },
+  );
+  document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
 </script>
 
 <style>
+  /* ---------- Hero ---------- */
   .hero {
-    padding: clamp(64px, 12vw, 150px) 0 clamp(72px, 10vw, 120px);
+    padding: clamp(56px, 10vw, 120px) 0 clamp(40px, 6vw, 72px);
+    position: relative;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: clamp(32px, 5vw, 72px);
+    align-items: start;
   }
   .hero-kicker {
     margin: 0 0 28px;
   }
   h1 {
     font-weight: 380;
-    font-size: clamp(40px, 7vw, 92px);
+    font-size: clamp(42px, 6.4vw, 86px);
     line-height: 1.02;
     letter-spacing: -0.028em;
     margin: 0;
-    max-width: 15ch;
+    max-width: 15.5ch;
     text-wrap: balance;
   }
   h1 em {
@@ -237,21 +347,26 @@ const chips = [
     font-weight: 300;
   }
   .lede {
-    max-width: 38em;
-    margin: 32px 0 0;
-    font-size: clamp(19px, 1.6vw, 22px);
+    max-width: 34em;
+    margin: 28px 0 0;
+    font-size: clamp(19px, 1.5vw, 21px);
     color: var(--muted);
     text-wrap: pretty;
   }
-  .ask {
-    margin-top: 56px;
-    max-width: 760px;
+  .reveal-now {
+    animation: rise-in 0.9s var(--ease) both;
+    animation-delay: calc(var(--d) * 90ms + 100ms);
   }
-  .ask-lead {
-    font-family: var(--mono);
-    font-size: 13px;
-    color: var(--muted);
-    margin: 0 0 14px;
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+      filter: blur(4px);
+    }
+  }
+  .ask {
+    margin-top: 44px;
+    max-width: 680px;
   }
   .ask-field {
     display: flex;
@@ -262,6 +377,14 @@ const chips = [
     border-radius: 12px;
     background: var(--bg-2);
     transition: border-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 0 0 var(--agent-dim);
+    animation: glow 3.2s ease-in-out 1.6s 2;
+  }
+  @keyframes glow {
+    50% {
+      box-shadow: 0 0 0 6px var(--agent-dim);
+      border-color: var(--agent);
+    }
   }
   .ask-field:focus-within {
     border-color: var(--agent);
@@ -303,35 +426,192 @@ const chips = [
     border-color: color-mix(in srgb, var(--bg) 40%, transparent);
     color: var(--bg);
   }
+  .ask-lead {
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--muted);
+    margin: 14px 0 12px;
+  }
   .ask-chips {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 14px;
   }
-  .ask-status {
-    margin: 20px 0 0;
-    color: var(--faint);
+
+  /* The inspector: the page as the agent reads it */
+  .inspector {
+    position: sticky;
+    top: 84px;
+    border: 1px solid var(--line-2);
+    border-radius: 12px;
+    background: var(--bg-2);
+    overflow: hidden;
+    margin-top: 44px;
+  }
+  .insp-head {
     display: flex;
     align-items: center;
     gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    font-size: 11.5px;
+    color: var(--muted);
   }
-  .ask-status::before {
-    content: '';
+  .insp-head .dot {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    border: 1px solid var(--agent);
-  }
-  :global(.ask-status.ready)::before {
     background: var(--agent);
+    box-shadow: 0 0 0 3px var(--agent-dim);
   }
-  :global(.ask-status b) {
+  .insp-count {
+    margin-left: auto;
+    color: var(--faint);
+  }
+  :global(.insp-count b) {
     color: var(--text);
     font-weight: 500;
   }
+  .insp-list {
+    list-style: none;
+    margin: 0;
+    padding: 6px 0;
+    height: 330px;
+    overflow: auto;
+    font-size: 11.5px;
+    scrollbar-width: thin;
+    mask-image: linear-gradient(transparent, #000 6%, #000 90%, transparent);
+  }
+  :global(.insp-list li) {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 8px;
+    padding: 3px 12px;
+    cursor: pointer;
+    color: var(--faint);
+    white-space: nowrap;
+    transition: color 0.2s, background 0.2s;
+  }
+  :global(.insp-list li .n) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--muted);
+  }
+  :global(.insp-list li.lvl-2) {
+    padding-left: 24px;
+  }
+  :global(.insp-list li.in) {
+    color: var(--agent);
+  }
+  :global(.insp-list li.in .n) {
+    color: var(--text);
+  }
+  :global(.insp-list li:hover) {
+    background: var(--bg-3);
+  }
+  :global(.insp-list li.new) {
+    animation: blip 0.5s var(--ease);
+  }
+  @keyframes blip {
+    from {
+      opacity: 0;
+      transform: translateX(-6px);
+    }
+  }
+  .insp-foot {
+    margin: 0;
+    padding: 10px 12px;
+    border-top: 1px solid var(--line);
+    font-size: 11px;
+    line-height: 1.55;
+    color: var(--faint);
+  }
+  .now {
+    margin-top: clamp(40px, 6vw, 72px);
+  }
+  .now p {
+    margin: 0;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--muted);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+  }
+  .now b {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .now-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ok);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    50% {
+      box-shadow: 0 0 0 5px color-mix(in srgb, var(--ok) 20%, transparent);
+    }
+  }
+  @media (max-width: 1040px) {
+    .hero-grid {
+      grid-template-columns: 1fr;
+    }
+    .inspector {
+      position: static;
+      margin-top: 0;
+    }
+    .insp-list {
+      height: 200px;
+    }
+  }
 
-  /* Work list */
+  /* ---------- Section heads ---------- */
+  .section-head {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 24px;
+    align-items: start;
+    margin-bottom: 56px;
+  }
+  .section-n {
+    font-size: 13px;
+    color: var(--faint);
+    padding-top: 6px;
+  }
+  .section-head .label {
+    margin: 0 0 10px;
+  }
+  .section-head h2 {
+    font-weight: 400;
+    font-size: clamp(32px, 4.4vw, 54px);
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+    margin: 0;
+    max-width: 20ch;
+    text-wrap: balance;
+  }
+  @media (max-width: 720px) {
+    .section-head {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
+  }
+  :global(.reveal.shown) {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ---------- Work ---------- */
   .work {
     list-style: none;
     margin: 0;
@@ -340,75 +620,145 @@ const chips = [
   }
   .row {
     display: grid;
-    grid-template-columns: 56px 1fr 220px 24px;
-    gap: 24px;
-    align-items: start;
-    padding: 30px 12px;
-    margin: 0 -12px;
+    grid-template-columns: 64px minmax(0, 1fr) 300px;
+    gap: clamp(20px, 4vw, 56px);
+    align-items: center;
+    padding: 36px 16px;
+    margin: 0 -16px;
     border-bottom: 1px solid var(--line);
     text-decoration: none;
-    border-radius: 4px;
-    transition: background 0.25s;
+    border-radius: 6px;
+    transition: background 0.3s;
   }
   .row:hover {
     background: var(--bg-2);
   }
   .row-i {
+    align-self: start;
     color: var(--faint);
-    padding-top: 10px;
+    padding-top: 30px;
   }
   .row-main {
     display: grid;
-    gap: 6px;
+    gap: 8px;
+  }
+  .row-ctx {
+    color: var(--text);
   }
   .row-name {
-    font-size: clamp(28px, 3.4vw, 40px);
-    line-height: 1.1;
-    letter-spacing: -0.015em;
+    font-size: clamp(32px, 4.2vw, 52px);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    transition: transform 0.4s var(--ease);
+    width: fit-content;
+  }
+  .row:hover .row-name {
+    transform: translateX(6px);
   }
   .row-sum {
     color: var(--muted);
-    max-width: 44em;
+    max-width: 38em;
     font-size: 17px;
-    margin-top: 4px;
   }
   .row-stat {
-    display: grid;
-    gap: 4px;
-    padding-top: 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-top: 8px;
   }
   .row-v {
-    font-size: 20px;
+    font-size: 17px;
+    color: var(--text);
   }
   .row-l {
     font-size: 14px;
-    color: var(--muted);
-    line-height: 1.35;
-  }
-  .row-go {
-    padding-top: 10px;
     color: var(--faint);
-    transition: transform 0.25s var(--ease), color 0.25s;
   }
-  .row:hover .row-go {
-    transform: translateX(4px);
-    color: var(--text);
+  .row-pv {
+    transition: transform 0.5s var(--ease);
+  }
+  .row:hover .row-pv {
+    transform: scale(1.03) rotate(-0.6deg);
   }
   @media (max-width: 860px) {
     .row {
-      grid-template-columns: 40px 1fr;
-      gap: 12px;
+      grid-template-columns: 36px 1fr;
+      gap: 12px 16px;
     }
-    .row-stat {
+    .row-i {
+      padding-top: 6px;
+    }
+    .row-pv {
       grid-column: 2;
-      padding-top: 4px;
-    }
-    .row-go {
-      display: none;
+      max-width: 360px;
     }
   }
 
-  /* About */
+  /* ---------- Log ---------- */
+  .log {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 13px;
+    border-left: 1px solid var(--line-2);
+    margin-left: 6px;
+  }
+  .log li {
+    display: grid;
+    grid-template-columns: 80px 96px 1fr;
+    gap: 16px;
+    align-items: baseline;
+    padding: 12px 0 12px 24px;
+    position: relative;
+  }
+  .log li::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 18px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--muted);
+  }
+  .log-when {
+    color: var(--faint);
+  }
+  .log-kind {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .k-hackathon {
+    color: var(--text);
+  }
+  .k-education {
+    color: var(--ok);
+  }
+  .log-what {
+    font-family: var(--serif);
+    font-size: 18px;
+    color: var(--text);
+    text-decoration: none;
+  }
+  a.log-what:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--line-2);
+    text-underline-offset: 4px;
+  }
+  @media (max-width: 720px) {
+    .log li {
+      grid-template-columns: 70px 1fr;
+      gap: 2px 12px;
+    }
+    .log-what {
+      grid-column: 1 / -1;
+    }
+  }
+
+  /* ---------- About ---------- */
   .about {
     display: grid;
     grid-template-columns: 1.1fr 1fr;
@@ -416,7 +766,15 @@ const chips = [
   }
   .about-prose p {
     margin: 0 0 1.1em;
+    font-size: 20px;
     text-wrap: pretty;
+  }
+  .about-prose p:first-child::first-letter {
+    font-size: 3.2em;
+    float: left;
+    line-height: 0.9;
+    margin: 6px 10px 0 0;
+    color: var(--text);
   }
   .facts {
     margin: 0;
@@ -438,12 +796,12 @@ const chips = [
     display: block;
     font-size: 15px;
   }
-  #skills dd .muted {
-    display: inline;
+  .facts .k {
     font-family: var(--mono);
-    font-size: 11.5px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+    color: var(--faint);
     margin-right: 6px;
   }
   @media (max-width: 860px) {
@@ -452,27 +810,43 @@ const chips = [
     }
   }
 
-  /* Contact */
+  /* ---------- Contact ---------- */
   .contact {
     display: grid;
-    grid-template-columns: 1fr 1.3fr;
+    grid-template-columns: 1fr 1.2fr;
     gap: clamp(32px, 6vw, 96px);
     align-items: start;
   }
   .contact-side p {
     margin: 0 0 1em;
   }
+  .big-email {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px !important;
+  }
   .email {
-    text-decoration-color: var(--line-2);
-    text-underline-offset: 4px;
+    font-size: clamp(26px, 3vw, 36px);
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .email:hover {
+    border-color: var(--agent);
   }
   .links {
     margin-top: 28px !important;
     font-size: 13px;
-    line-height: 2;
+    line-height: 2.1;
   }
   .links a {
     color: var(--muted);
+    text-decoration: none;
+  }
+  .links a:hover {
+    color: var(--text);
   }
   .form {
     display: grid;
@@ -532,6 +906,12 @@ const chips = [
   @media (max-width: 860px) {
     .contact {
       grid-template-columns: 1fr;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      opacity: 1;
+      transform: none;
     }
   }
 </style>

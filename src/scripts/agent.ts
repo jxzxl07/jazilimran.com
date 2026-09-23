@@ -478,6 +478,8 @@ let running = false;
 export async function run(text: string, resume?: Intent[]) {
   if (running) return;
   running = true;
+  parked = false;
+  setTag('agent');
   closeBar();
   document.documentElement.classList.add('agent-busy');
   try {
@@ -503,7 +505,7 @@ export async function run(text: string, resume?: Intent[]) {
     await sleep(1600);
     if (!running) {
       highlight(null);
-      cursor.hide();
+      park();
       log.closeSoon();
     }
   }
@@ -604,10 +606,176 @@ async function readPage() {
   }
   if (status) {
     const ms = Math.max(1, Math.round(performance.now() - t0));
-    status.innerHTML = `Read this page: <b>${total}</b> named elements. Ready.`;
+    status.innerHTML = `<b>${total}</b> elements · ready`;
     status.classList.add('ready');
     status.title = `${ms} ms`;
   }
+}
+
+
+// ------------------------------------------------------ resting place
+
+// Between tasks the cursor waits by the input, so the agent is always visible.
+let parked = false;
+function setTag(text: string) {
+  const t = $('#agent-cursor .tag');
+  if (t) t.textContent = text;
+}
+function parkSpot() {
+  const input = $('#hero-ask');
+  if (!input) return null;
+  const r = input.getBoundingClientRect();
+  if (r.bottom < 70 || r.top > innerHeight - 40) return null;
+  // Beside the Run button when there is room; otherwise stay out of the way.
+  if (r.right + 190 > innerWidth) return null;
+  return { x: r.right + 16, y: r.top + r.height / 2 - 6 };
+}
+function park() {
+  const spot = parkSpot();
+  if (!spot || running) {
+    parked = false;
+    cursor.hide();
+    return;
+  }
+  parked = true;
+  setTag('agent · waiting for you');
+  cursor.moveTo(spot.x, spot.y);
+}
+addEventListener(
+  'scroll',
+  () => {
+    if (!parked || running) return;
+    const spot = parkSpot();
+    if (!spot) cursor.hide();
+    else {
+      cursor.set(spot.x, spot.y);
+      cursor.show();
+    }
+  },
+  { passive: true },
+);
+
+// ------------------------------------------------------------ inspector
+
+// The page as the agent reads it, listed live beside the headline.
+function buildInspector() {
+  const list = $<HTMLOListElement>('#insp-list');
+  if (!list) return;
+  const els = [...document.querySelectorAll<HTMLElement>('main h1, main h2, main a, main button, main input, main textarea, main select')].filter(
+    (el) => !el.closest('.inspector') && !el.closest('.ask-chips') && nameOf(el),
+  );
+  const items = new Map<HTMLElement, HTMLLIElement>();
+  els.forEach((el, i) => {
+    const li = document.createElement('li');
+    const heading = /^H[12]$/.test(el.tagName);
+    li.className = `lvl-${heading ? 1 : 2} new`;
+    li.style.animationDelay = `${Math.min(i, 30) * 25}ms`;
+    li.innerHTML = '<span class="r"></span><span class="n"></span>';
+    li.querySelector('.r')!.textContent = roleOf(el);
+    li.querySelector('.n')!.textContent = nameOf(el);
+    li.title = `${roleOf(el)} · ${nameOf(el)}`;
+    li.addEventListener('click', () => goTo(el));
+    list.append(li);
+    items.set(el, li);
+  });
+
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) items.get(e.target as HTMLElement)?.classList.toggle('in', e.isIntersecting);
+    if (list.matches(':hover')) return;
+    const first = list.querySelector<HTMLElement>('li.in');
+    if (first) list.scrollTo({ top: first.offsetTop - 8, behavior: reduced ? 'auto' : 'smooth' });
+  });
+  items.forEach((_, el) => io.observe(el));
+}
+
+// Clicking an entry in the inspector: the agent goes there, and presses it if
+// it is something to press, subject to the same policy as everything else.
+async function goTo(el: HTMLElement) {
+  if (running) return;
+  running = true;
+  parked = false;
+  setTag('agent');
+  log.command(`go to ${roleOf(el)} “${nameOf(el)}”`);
+  try {
+    const s = log.step(`find ${roleOf(el)} “${nameOf(el)}”`);
+    await pointAt(el);
+    s.ok();
+    if (el instanceof HTMLAnchorElement || (el instanceof HTMLButtonElement && !el.closest('form[data-agent-inline]'))) {
+      await sleep(250);
+      if (await press(el)) {
+        const pending = el instanceof HTMLAnchorElement && el.dataset.agentProject ? [{ type: 'demo' } as Intent] : [];
+        if (el instanceof HTMLAnchorElement && !el.getAttribute('href')!.startsWith('#')) {
+          if (/^https?:/.test(el.getAttribute('href')!)) {
+            log.note('That link leaves this site, so I’ve stopped here.');
+          } else {
+            go(el.href, pending);
+            return;
+          }
+        } else el.click();
+      }
+    } else if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+      el.focus({ preventScroll: true });
+    }
+  } finally {
+    running = false;
+    await sleep(1400);
+    if (!running) {
+      highlight(null);
+      park();
+      log.closeSoon();
+    }
+  }
+}
+
+// ---------------------------------------------------------------- intro
+
+// On a first visit the agent introduces itself without being asked, then hands
+// over. Any key, click, touch or scroll stops it immediately.
+async function intro() {
+  let stopped = false;
+  const stop = () => (stopped = true);
+  const evs = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
+  evs.forEach((e) => addEventListener(e, stop, { capture: true, once: true }));
+  const done = () => {
+    evs.forEach((e) => removeEventListener(e, stop, { capture: true }));
+    highlight(null);
+    if (!running) park();
+  };
+  try {
+    sessionStorage.setItem('agent:intro', '1');
+  } catch {}
+
+  const h1 = $('main h1');
+  const insp = $('.inspector');
+  const input = $<HTMLInputElement>('#hero-ask input');
+  if (!h1 || !input) return done();
+
+  cursor.set(innerWidth + 40, innerHeight * 0.35);
+  setTag('agent');
+  const at = async (el: HTMLElement, label: string, hold: number) => {
+    if (stopped) return;
+    const c = centreOf(el);
+    await cursor.moveTo(c.x, c.y);
+    if (stopped) return;
+    highlight(el, label);
+    await sleep(hold);
+  };
+
+  await at(h1, 'heading · the short version', 1500);
+  if (insp && insp.getBoundingClientRect().top < innerHeight - 100) {
+    await at(insp, 'region · everything I can read on this page', 1700);
+  }
+  await at(input, 'text field · you can talk to me here', 600);
+  const sample = 'Show me the security project';
+  for (let i = 1; i <= sample.length && !stopped; i++) {
+    input.value = sample.slice(0, i);
+    await sleep(38);
+  }
+  if (!stopped) {
+    highlight(input, 'your turn · press ↵ to run it');
+    await sleep(2600);
+  }
+  done();
 }
 
 // ------------------------------------------------------------------ wire
@@ -685,8 +853,19 @@ function init() {
     readPage();
     setTimeout(() => run('', pending!.rest), 450);
   } else {
-    document.fonts?.ready.then(() => setTimeout(readPage, 250));
+    document.fonts?.ready.then(() =>
+      setTimeout(async () => {
+        await readPage();
+        let seen = false;
+        try {
+          seen = !!sessionStorage.getItem('agent:intro');
+        } catch {}
+        if (here().page === 'home' && !seen && !reduced && scrollY < 100) intro();
+        else park();
+      }, 250),
+    );
   }
+  buildInspector();
 }
 
 init();

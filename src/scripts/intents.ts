@@ -13,7 +13,7 @@ export type Contact = {
 
 export type Intent =
   | { type: 'open'; slug: string }
-  | { type: 'section'; target: string; label: string }
+  | { type: 'section'; target: string; label: string; page?: 'cv' }
   | { type: 'contact'; contact: Contact }
   | { type: 'send' }
   | { type: 'credential' }
@@ -69,21 +69,25 @@ function one(s: string, original: string, here: { page: string; slug?: string })
   }
 
   // Questions about him, not his projects, even when they mention cricket.
-  const award = ['captain', 'prize', 'award', 'maths challenge'].find((w) => s.includes(w));
-  if (award) return { type: 'find', query: award };
+  if (['captain', 'prize', 'award', 'maths challenge'].some((w) => s.includes(w)))
+    return { type: 'section', target: '#education', label: 'Education', page: 'cv' };
 
   const project = matchProject(s);
   if (project) return { type: 'open', slug: project };
 
   if (has(s, 'cv', 'resume', 'résumé', 'curriculum vitae')) return { type: 'cv' };
   if (has(s, 'study', 'studies', 'university', 'uni', 'cambridge', 'caius', 'degree', 'education', 'school', 'a levels', 'a-levels', 'grades'))
-    return { type: 'section', target: '#education', label: 'Education' };
+    return { type: 'section', target: '#education', label: 'Education', page: 'cv' };
   if (has(s, 'experience', 'worked', 'job', 'jobs', 'teach', 'taught', 'teaching', 'instructor', 'hudl', 'invirtigo', 'ccna'))
-    return { type: 'section', target: '#experience', label: 'Experience' };
+    return { type: 'section', target: '#experience', label: 'Experience', page: 'cv' };
   if (has(s, 'skills', 'languages', 'stack', 'tech stack', 'technologies', 'know', 'python', 'java', 'ocaml', 'react', 'docker'))
-    return { type: 'section', target: '#skills', label: 'Skills' };
-  if (has(s, 'about', 'who is', "who's", 'who are you', 'background', 'cricket', 'hobbies'))
-    return { type: 'section', target: '#about', label: 'About' };
+    return { type: 'section', target: '#skills', label: 'Skills', page: 'cv' };
+  if (has(s, 'about', 'who is', "who's", 'who are you', 'background'))
+    return { type: 'home' };
+  if (has(s, 'cricket', 'hobbies', 'prizes', 'awards'))
+    return { type: 'section', target: '#education', label: 'Education', page: 'cv' };
+  if (has(s, 'log', 'timeline', 'history', 'when'))
+    return { type: 'section', target: '#log', label: 'Log' };
   if (has(s, 'projects', 'work', 'portfolio', 'built', 'build', 'made'))
     return { type: 'section', target: '#work', label: 'Selected work' };
   if (has(s, 'contact', 'email', 'reach', 'linkedin', 'github'))

@@ -148,67 +148,6 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
     </div>
   </section>
 
-  <section class="section" id="about" aria-labelledby="about-h">
-    <div class="wrap">
-      <div class="section-head reveal">
-        <div>
-          <p class="label">About</p>
-          <h2 id="about-h">I taught networks, then learned to build on top of them.</h2>
-        </div>
-      </div>
-      <div class="about">
-        <div class="about-prose reveal">
-          <p>
-            Before university I spent two years teaching CCNA to more than twenty students: subnetting, VLANs,
-            routing protocols, and the moment a traceroute finally makes sense. Explaining how a system fails turned
-            out to be the best way to learn how to build one.
-          </p>
-          <p>
-            Now I read Computer Science at Cambridge, and most of what I build takes action: agents that fill forms,
-            repair services and mark exam answers. The action is rarely the hard part. The hard part is everything
-            around it: what the agent may touch, how it proves it worked, and when it has to stop and hand back to a
-            person.
-          </p>
-          <p>Off the keyboard it’s cricket. I captained my school side, which is partly why CreaseLab exists.</p>
-        </div>
-        <dl class="facts reveal">
-          <div id="education">
-            <dt class="label">Education</dt>
-            <dd>
-              <b>University of Cambridge</b>, Gonville &amp; Caius College
-              <span class="muted">BA Computer Science · 2025–2028</span>
-            </dd>
-            <dd>
-              <b>Southend High School for Boys</b>
-              <span class="muted">A-levels A*A*A*A*: Maths, Further Maths, Computer Science, Physics</span>
-            </dd>
-          </div>
-          <div id="experience">
-            <dt class="label">Experience</dt>
-            <dd>
-              <b>Networking Instructor</b>, Invirtigo
-              <span class="muted">2022–2024 · CCNA teaching for 20+ students</span>
-            </dd>
-            <dd>
-              <b>Technology work shadowing</b>, Hudl
-              <span class="muted">2024 · software and data engineering for sports video</span>
-            </dd>
-          </div>
-          <div id="skills">
-            <dt class="label">Tools</dt>
-            <dd><span class="k">Languages</span> Python, Java, OCaml, C, SQL, JavaScript, TypeScript, Swift</dd>
-            <dd><span class="k">Building with</span> FastAPI, React, WebCrypto, WebRTC, OpenCV, MediaPipe, Gemini</dd>
-            <dd><span class="k">Shipping with</span> Docker, GitHub Actions, PostgreSQL, Modal, Render, Linux</dd>
-          </div>
-          <div>
-            <dt class="label">Also</dt>
-            <dd>Academic Achievement Prize, Computer Science Prize, Senior Maths Challenge Gold, cricket team captain</dd>
-          </div>
-        </dl>
-      </div>
-    </div>
-  </section>
-
   <section class="section" id="contact" aria-labelledby="contact-h">
     <div class="wrap">
       <div class="section-head reveal">
@@ -755,51 +694,6 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
     }
     .log-what {
       grid-column: 1 / -1;
-    }
-  }
-
-  /* ---------- About ---------- */
-  .about {
-    display: grid;
-    grid-template-columns: 1.1fr 1fr;
-    gap: clamp(32px, 6vw, 96px);
-  }
-  .about-prose p {
-    margin: 0 0 1.1em;
-    font-size: 20px;
-    text-wrap: pretty;
-  }
-  .facts {
-    margin: 0;
-    display: grid;
-    gap: 28px;
-  }
-  .facts dt {
-    margin-bottom: 8px;
-  }
-  .facts dd {
-    margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.45;
-  }
-  .facts dd b {
-    font-weight: 500;
-  }
-  .facts dd .muted {
-    display: block;
-    font-size: 15px;
-  }
-  .facts .k {
-    font-family: var(--mono);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--faint);
-    margin-right: 6px;
-  }
-  @media (max-width: 860px) {
-    .about {
-      grid-template-columns: 1fr;
     }
   }
 

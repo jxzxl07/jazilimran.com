@@ -316,8 +316,13 @@ async function perform(intent: Intent, rest: Intent[]): Promise<'continue' | 'na
       const target = $(intent.target);
       const s = log.step(`find “${intent.label}”`);
       if (!target) {
-        s.ok('on the home page, navigating');
-        go(`/${intent.target}`, [{ type: 'section', target: intent.target, label: intent.label }, ...rest]);
+        const home = intent.page !== 'cv';
+        if ((home && h.page === 'home') || (!home && h.page === 'cv')) {
+          s.miss('That part of the page isn’t here.');
+          return 'continue';
+        }
+        s.ok(home ? 'on the home page, navigating' : 'on the CV, navigating');
+        go(`${home ? '/' : '/cv/'}${intent.target}`, [intent, ...rest]);
         return 'navigated';
       }
       await pointAt(target, `region · ${intent.label}`);

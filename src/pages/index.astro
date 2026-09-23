@@ -30,10 +30,10 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
       <div class="hero-main">
         <p class="label hero-kicker reveal-now" style="--d:0">Computer Science · University of Cambridge</p>
         <h1 class="reveal-now" style="--d:1">
-          <span>I build software</span>
-          <span>that acts on its own,</span>
-          <em>and the guardrails</em>
-          <em>that make it safe to.</em>
+          <span>I build agents</span>
+          <span>that do real work,</span>
+          <em>and know exactly</em>
+          <em>when to stop.</em>
         </h1>
         <p class="lede reveal-now" style="--d:2">
           I’m Jazil, a Computer Science student at Gonville &amp; Caius, Cambridge. My projects click, type, repair
@@ -50,7 +50,7 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
             <button class="ask-go" type="submit">Run <kbd>↵</kbd></button>
           </form>
           <p class="ask-lead mono">
-            This page has an agent built in. Tell it what you want<span class="desk-only">, or hold <kbd>⌘⇧Space</kbd> and say it</span>.
+            This page has an agent built in. Tell it what you want<span class="desk-only">, or hold <kbd data-kbd="talk">⌘⇧Space</kbd> and say it</span>.
             It acts in front of you, and it won’t press send.
           </p>
           <div class="ask-chips">
@@ -86,7 +86,7 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
       <div class="section-head reveal">
         <div>
           <p class="label">Work</p>
-          <h2 id="work-h">Six things I’ve built, and what each one refuses to do.</h2>
+          <h2 id="work-h">Six projects, from desktop agents to cricket biomechanics.</h2>
         </div>
       </div>
       <ol class="work">
@@ -562,10 +562,8 @@ const log: { when: string; kind: string; what: string; href?: string }[] = [
   .inspector {
     min-width: 0;
   }
-  @media (hover: none) {
-    .desk-only {
-      display: none;
-    }
+  :global([data-keys='touch']) .desk-only {
+    display: none;
   }
   @media (max-width: 1040px) {
     .hero-grid {

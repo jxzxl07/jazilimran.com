@@ -1,6 +1,7 @@
 ---
 // A synthetic pull shot, drawn as a pose. The metrics are computed live from
 // the joints each frame, the same way CreaseLab derives them from MediaPipe.
+import { PHASES } from '../../scripts/pose';
 ---
 
 <div class="demo cl" id="cl">
@@ -21,7 +22,7 @@
         <input id="cl-scrub" type="range" min="0" max="1000" value="0" aria-label="Scrub through the shot" />
       </div>
       <div class="phases mono" id="cl-phases">
-        <span data-at="0">stance</span><span data-at="0.3">backlift</span><span data-at="0.55">downswing</span><span data-at="0.72">contact</span><span data-at="0.9">finish</span>
+        {PHASES.map((ph) => <span data-at={ph.at}>{ph.name}</span>)}
       </div>
     </div>
     <div class="panel">
@@ -32,20 +33,20 @@
       <p class="label">Measured from the pose</p>
       <dl class="metrics mono">
         <div><dt>front knee flexion</dt><dd id="m-knee">–</dd></div>
-        <div><dt>shoulder line</dt><dd id="m-sh">–</dd></div>
+        <div><dt>shoulder rotation</dt><dd id="m-sh">–</dd></div>
         <div><dt>hand speed</dt><dd id="m-hand">–</dd></div>
         <div><dt>head movement</dt><dd id="m-head">–</dd></div>
       </dl>
     </div>
   </div>
   <p class="demo-note">
-    A synthetic pose, hand-animated for this page, with scores modelled on a real CreaseLab result. The metrics are
-    computed from the joints as it plays. Try the live app with your own clip.
+    A pull shot keyframed in 3D for this page, shown from a raised broadcast angle, with scores modelled on a real
+    CreaseLab result. The metrics are computed from the 3D joints as it plays. Try the live app with your own clip.
   </p>
 </div>
 
 <script>
-  import { drawPose, poseAt, angle, ease, lerp } from '../../scripts/pose';
+  import { drawScene, metricsAt, ease } from '../../scripts/pose';
 
   const classes = ['pull', 'drive', 'cut', 'flick'];
   // Scores settle over the shot, ending where a real CreaseLab pull result ended.
@@ -63,31 +64,24 @@
   const barEls = [...bars.querySelectorAll<HTMLElement>('.bar')];
 
   let t = 0, speed = 0.5, playing = false, last = 0;
-  const DURATION = 900; // ms at 1×, about the length of a real pull shot
-  const head0 = poseAt(0).p.head;
+  const SHOT = 1.1; // seconds at 1×, stance to finish
   const set = (id: string, v: string) => (document.getElementById(id)!.textContent = v);
 
   function draw() {
-    const { p, hands } = drawPose(ctx, t, { grid: true });
-    // Metrics, computed from this frame's joints. The unit box is about 1.9 m tall.
-    const knee = 180 - angle(p.lh, p.lk, p.la);
-    const sh = (Math.atan2(p.rs[1] - p.ls[1], p.rs[0] - p.ls[0]) * 180) / Math.PI;
-    const before = poseAt(Math.max(0, t - 0.01)).p;
-    const handsBefore = lerp(before.lw, before.rw, 0.5);
-    const handSpeed = (Math.hypot(hands[0] - handsBefore[0], hands[1] - handsBefore[1]) * 1.9) / (0.01 * (DURATION / 1000));
-    const headMove = Math.hypot(p.head[0] - head0[0], p.head[1] - head0[1]) * 190;
-    set('m-knee', `${knee.toFixed(1)}°`);
-    set('m-sh', `${sh >= 0 ? '+' : ''}${sh.toFixed(1)}°`);
-    set('m-hand', `${handSpeed.toFixed(1)} m/s`);
-    set('m-head', `${headMove.toFixed(1)} cm`);
+    drawScene(ctx, t, { grid: true });
+    const m = metricsAt(t, SHOT);
+    set('m-knee', `${m.knee.toFixed(1)}°`);
+    set('m-sh', `${m.rotation.toFixed(0)}°`);
+    set('m-hand', `${m.handSpeed.toFixed(1)} m/s`);
+    set('m-head', `${m.headMove.toFixed(1)} cm`);
 
-    const seen = Math.min(1, t / 0.85);
+    const seen = Math.min(1, t / 0.8);
     barEls.forEach((el, i) => {
       const v = flat + (finalScores[i] - flat) * ease(seen);
       (el.querySelector('i') as HTMLElement).style.width = `${v * 100}%`;
       el.querySelector('.v')!.textContent = `${Math.round(v * 100)}%`;
     });
-    set('cl-cls', seen > 0.75 ? 'Pull' : 'Watching…');
+    set('cl-cls', seen > 0.8 ? 'Pull' : 'Watching…');
     document.querySelectorAll<HTMLElement>('#cl-phases span').forEach((s) => s.classList.toggle('on', t >= +s.dataset.at!));
     scrub.value = String(Math.round(t * 1000));
   }
@@ -96,7 +90,7 @@
     if (!playing) return;
     const dt = last ? now - last : 16;
     last = now;
-    t += (dt / DURATION) * speed;
+    t += (dt / 1000 / SHOT) * speed;
     if (t >= 1) {
       t = 1;
       playing = false;

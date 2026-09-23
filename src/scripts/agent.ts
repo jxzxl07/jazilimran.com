@@ -301,13 +301,13 @@ async function perform(intent: Intent, rest: Intent[]): Promise<'continue' | 'na
       await pointAt(demo, 'region · live demo');
       s.ok();
       const play = $<HTMLButtonElement>('[data-agent-play]', demo);
-      if (play && demo.dataset.played) {
-        log.note('The demo is already running.');
-      } else if (play) {
+      if (play) {
         demo.dataset.played = '1';
         await pointAt(play);
         await sleep(200);
-        if (await press(play)) play.click();
+        if (play.disabled || /pause/i.test(play.textContent ?? '')) {
+          log.note('It’s already running. Watch this space.');
+        } else if (await press(play)) play.click();
       }
       return 'continue';
     }
@@ -783,8 +783,15 @@ async function intro() {
 
 // ------------------------------------------------------------------ wire
 
+function labelKeys() {
+  if (document.documentElement.dataset.keys !== 'pc') return;
+  const labels: Record<string, string> = { open: 'Ctrl K', talk: 'Ctrl Shift Space' };
+  document.querySelectorAll<HTMLElement>('kbd[data-kbd]').forEach((k) => (k.textContent = labels[k.dataset.kbd!] ?? k.textContent));
+}
+
 function init() {
-  // Hold ⌘⇧Space (Ctrl⇧Space elsewhere) to talk; let go to run.
+  labelKeys();
+  // Hold ⌘⇧Space on a Mac, Ctrl+Shift+Space elsewhere, to talk; let go to run.
   let holding = false;
   addEventListener('keydown', (e) => {
     const typing = /INPUT|TEXTAREA|SELECT/.test((e.target as HTMLElement)?.tagName) && (e.target as HTMLElement).id !== 'agent-input';

@@ -10,6 +10,12 @@ import EncryptaDemo from '../../components/demos/EncryptaDemo.astro';
 import TriposDemo from '../../components/demos/TriposDemo.astro';
 import CreaseLabDemo from '../../components/demos/CreaseLabDemo.astro';
 import RoutingDemo from '../../components/demos/RoutingDemo.astro';
+import JevBarStory from '../../components/stories/JevBarStory.astro';
+import NightWatchStory from '../../components/stories/NightWatchStory.astro';
+import EncryptaStory from '../../components/stories/EncryptaStory.astro';
+import TriposStory from '../../components/stories/TriposStory.astro';
+import CreaseLabStory from '../../components/stories/CreaseLabStory.astro';
+import RoutingStory from '../../components/stories/RoutingStory.astro';
 
 export function getStaticPaths() {
   return projects.map((p, i) => ({
@@ -32,6 +38,15 @@ const demos: Record<string, any> = {
   routing: RoutingDemo,
 };
 const Demo = demos[p.slug];
+const stories: Record<string, any> = {
+  jevbar: JevBarStory,
+  nightwatch: NightWatchStory,
+  encrypta: EncryptaStory,
+  'tripos-tutor': TriposStory,
+  creaselab: CreaseLabStory,
+  routing: RoutingStory,
+};
+const Story = stories[p.slug];
 const flow = flows[p.slug];
 ---
 
@@ -104,11 +119,12 @@ const flow = flows[p.slug];
       <div class="wrap">
         <div class="part-head">
           <p class="label" id="how-h">03 · How it works</p>
-          <p class="mono hint">Scroll the steps. The diagram follows.</p>
+          <p class="mono hint">Scroll the steps. The scene follows.</p>
         </div>
         <div class="how-grid">
           <div class="how-flow">
-            <ArchFlow flow={flow} name={p.name} />
+            <Story />
+            <p class="mono story-note">Illustrated from the project’s README and code. Values shown are examples.</p>
           </div>
           <ol class="steps">
             {
@@ -125,11 +141,21 @@ const flow = flows[p.slug];
       </div>
     </section>
 
+    <section class="arch" aria-labelledby="arch-h">
+      <div class="wrap">
+        <div class="part-head">
+          <p class="label" id="arch-h">04 · Architecture</p>
+          <p class="mono hint">The whole system, running.</p>
+        </div>
+        <ArchFlow flow={flow} name={p.name} />
+      </div>
+    </section>
+
     {
       p.honest && (
         <section class="honest">
           <div class="wrap">
-            <p class="label">04 · Stated plainly</p>
+            <p class="label">05 · Stated plainly</p>
             <div class="honest-body">
               {p.honest.map((t) => (
                 <p>{t}</p>
@@ -216,23 +242,15 @@ const flow = flows[p.slug];
     demoIO.observe(demo);
   }
 
-  // Scroll-linked diagram: the step in the middle of the screen lights its parts.
-  const flow = document.querySelector<HTMLElement>('.flow');
+  // Scroll-linked scene: the step in the middle of the screen chooses the scene.
+  const story = document.querySelector<HTMLElement>('[data-story]');
   const steps = [...document.querySelectorAll<HTMLElement>('.step')];
-  if (flow) {
-    const sets: string[][] = JSON.parse(flow.dataset.flow!);
+  if (story) {
     const activate = (i: number | null) => {
-      steps.forEach((s, j) => s.classList.toggle('active', j === i));
-      if (i === null) {
-        delete flow.dataset.active;
-        flow.querySelectorAll('.on').forEach((n) => n.classList.remove('on'));
-        return;
-      }
-      const set = new Set(sets[i]);
-      flow.dataset.active = String(i);
-      flow.querySelectorAll<SVGGElement>('.fn').forEach((n) => n.classList.toggle('on', set.has(n.dataset.id!)));
-      flow.querySelectorAll<SVGGElement>('.fe').forEach((e) => e.classList.toggle('on', set.has(e.dataset.a!) && set.has(e.dataset.b!)));
+      steps.forEach((s, j) => s.classList.toggle('active', j === (i ?? 0)));
+      story.dataset.step = String(i ?? 0);
     };
+    activate(0);
     const stepIO = new IntersectionObserver(
       (entries) => {
         for (const e of entries) if (e.isIntersecting) activate(+(e.target as HTMLElement).dataset.i!);
@@ -431,13 +449,30 @@ const flow = flows[p.slug];
   }
   .how-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
     gap: clamp(28px, 4vw, 56px);
     align-items: start;
   }
   .how-flow {
     position: sticky;
-    top: 22vh;
+    top: 14vh;
+  }
+  .story-note {
+    margin: 10px 0 0;
+    font-size: 11px;
+    color: var(--faint);
+  }
+  .arch {
+    border-top: 1px solid var(--line);
+    padding: clamp(56px, 8vw, 110px) 0;
+  }
+  @media (max-width: 860px) {
+    .arch .wrap {
+      overflow-x: auto;
+    }
+    .arch :global(.flow) {
+      min-width: 760px;
+    }
   }
   .steps {
     list-style: none;
@@ -482,13 +517,13 @@ const flow = flows[p.slug];
       grid-template-columns: 1fr;
     }
     .how-flow {
-      position: static;
-      overflow-x: auto;
-      margin: 0 calc(var(--gutter) * -1);
-      padding: 0 var(--gutter) 8px;
+      top: 64px;
+      z-index: 2;
+      background: var(--bg);
+      padding: 8px 0 12px;
     }
-    .how-flow :global(.flow) {
-      min-width: 720px;
+    .story-note {
+      display: none;
     }
     .step {
       min-height: 0;

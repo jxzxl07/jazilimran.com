@@ -1,0 +1,286 @@
+---
+// The routing simulator's ideas, one scene per step.
+const N: Record<string, [number, number]> = { A: [12, 50], B: [38, 20], C: [38, 80], D: [66, 20], E: [66, 80], F: [90, 50] };
+const L: [string, string, number][] = [['A', 'B', 2], ['A', 'C', 5], ['B', 'C', 1], ['B', 'D', 4], ['C', 'E', 3], ['D', 'E', 1], ['D', 'F', 3], ['E', 'F', 6]];
+// Dijkstra from A settles in this order, with these distances.
+const settle = [['A', 0], ['B', 2], ['C', 3], ['E', 6], ['D', 6], ['F', 9]] as const;
+---
+
+<div class="story rt-story" data-story data-step="0">
+  <!-- 0: link-state -->
+  <div class="scene s0">
+    <svg class="g" viewBox="0 0 100 100">
+      {L.map(([a, b, w]) => (
+        <g>
+          <line x1={N[a][0]} y1={N[a][1]} x2={N[b][0]} y2={N[b][1]} />
+          <text x={(N[a][0] + N[b][0]) / 2} y={(N[a][1] + N[b][1]) / 2 - 2} class="w">{w}</text>
+        </g>
+      ))}
+      {settle.map(([n, d], i) => (
+        <g class="nd" style={`--i:${i}`}>
+          <circle cx={N[n][0]} cy={N[n][1]} r="5" />
+          <text x={N[n][0]} y={N[n][1] + 1.6} class="nm">{n}</text>
+          <text x={N[n][0]} y={N[n][1] + 11} class="d">{d}</text>
+        </g>
+      ))}
+    </svg>
+    <div class="heap card">
+      <span class="k">min-heap pops</span>
+      {settle.map(([n, d], i) => <p style={`--i:${i}`}>{n} · {d}</p>)}
+    </div>
+  </div>
+
+  <!-- 1: distance-vector -->
+  <div class="scene s1">
+    <div class="routers">
+      {['A', 'B', 'C'].map((r, i) => (
+        <div class="rtr card" style={`--i:${i}`}>
+          <span class="k">router {r}</span>
+          <p>to C: <b class="v">{r === 'A' ? 2 : r === 'B' ? 1 : 0}</b></p>
+          <p>via <b>{r === 'A' ? 'B' : r === 'B' ? 'C' : '–'}</b></p>
+        </div>
+      ))}
+    </div>
+    <div class="msgs">
+      <span class="vec v1">B → A: “I reach C in 1”</span>
+      <span class="vec v2">C → B: “I am C”</span>
+    </div>
+    <p class="cap">each router only knows what its neighbours tell it</p>
+  </div>
+
+  <!-- 2: break it -->
+  <div class="scene s2">
+    <svg class="g" viewBox="0 0 100 100">
+      {L.map(([a, b]) => (
+        <line class={a + b === 'DF' ? 'cut' : ''} x1={N[a][0]} y1={N[a][1]} x2={N[b][0]} y2={N[b][1]} />
+      ))}
+      <path class="old" d="M12 50 L38 20 L66 20 L90 50" />
+      <path class="new" d="M12 50 L38 20 L38 80 L66 80 L90 50" />
+      <circle class="pk" r="2.4" />
+      {Object.entries(N).map(([n, [x, y]]) => (
+        <g class="nd on">
+          <circle cx={x} cy={y} r="5" />
+          <text x={x} y={y + 1.6} class="nm">{n}</text>
+        </g>
+      ))}
+    </svg>
+    <p class="cap">D–F fails · every table recomputes · packets take A → B → C → E → F</p>
+  </div>
+
+  <!-- 3: the engine stands alone -->
+  <div class="scene s3">
+    <div class="stack">
+      <div class="layer card"><span class="k">browser</span><b>Cytoscape.js · live graph</b></div>
+      <div class="layer card"><span class="k">web layer</span><b>FastAPI · one container</b></div>
+      <div class="wall"><span>no web imports below this line</span></div>
+      <div class="layer card eng"><span class="k">engine · pure Python</span><b>graph · heap · dijkstra · distance_vector · forwarding</b></div>
+      <div class="layer card tests"><span class="k">tests</span><b>scenarios run on the engine alone</b></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .k {
+    display: block;
+    margin: 0 0 0.6cqw;
+    color: var(--faint);
+    font-size: calc(1.3cqw * var(--ts));
+  }
+  b {
+    font-weight: 400;
+    color: var(--text);
+  }
+  .card {
+    padding: 1.4cqw 1.8cqw;
+  }
+  .g {
+    position: absolute;
+    left: 3cqw;
+    top: 3cqw;
+    width: 64cqw;
+    height: 62cqw;
+  }
+  .g line {
+    stroke: var(--line-2);
+    stroke-width: 0.6;
+  }
+  .g .w {
+    font-size: 3px;
+    fill: var(--faint);
+    text-anchor: middle;
+  }
+  .nd circle {
+    fill: var(--bg);
+    stroke: var(--muted);
+    stroke-width: 0.6;
+  }
+  .nd .nm {
+    font-size: 4.2px;
+    fill: var(--text);
+    text-anchor: middle;
+  }
+  .nd .d {
+    font-size: 3.4px;
+    fill: var(--ok);
+    text-anchor: middle;
+    opacity: 0;
+  }
+  :global(.rt-story[data-step='0']) .s0 .nd circle {
+    animation: settle 6s infinite;
+    animation-delay: calc(var(--i) * 0.55s);
+  }
+  :global(.rt-story[data-step='0']) .s0 .nd .d {
+    animation: showd 6s infinite;
+    animation-delay: calc(var(--i) * 0.55s);
+  }
+  @keyframes settle {
+    0% { stroke: var(--muted); fill: var(--bg); }
+    6%, 100% { stroke: var(--ok); fill: var(--bg-3); }
+  }
+  @keyframes showd {
+    0% { opacity: 0; }
+    6%, 100% { opacity: 1; }
+  }
+  .heap {
+    position: absolute;
+    right: 5cqw;
+    top: 8cqw;
+    width: 22cqw;
+    font-size: calc(1.5cqw * var(--ts));
+  }
+  .heap p {
+    margin: 0;
+    padding: 0.6cqw 0;
+    border-top: 1px solid var(--line);
+    color: var(--text);
+    opacity: 0.2;
+  }
+  :global(.rt-story[data-step='0']) .heap p {
+    animation: showh 6s infinite;
+    animation-delay: calc(var(--i) * 0.55s);
+  }
+  @keyframes showh {
+    0% { opacity: 0.2; }
+    6%, 100% { opacity: 1; }
+  }
+
+  /* 1 */
+  .routers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6cqw;
+    margin-top: 8cqw;
+  }
+  .rtr p {
+    margin: 0.4cqw 0;
+    font-size: calc(1.6cqw * var(--ts));
+  }
+  .msgs {
+    position: relative;
+    height: 14cqw;
+  }
+  .vec {
+    position: absolute;
+    top: 3cqw;
+    font-size: calc(1.35cqw * var(--ts));
+    padding: 0.4cqw 1cqw;
+    border-radius: 0.6cqw;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    color: var(--text);
+    white-space: nowrap;
+    opacity: 0;
+  }
+  :global(.rt-story[data-step='1']) .v1 {
+    animation: left 4s infinite var(--ease);
+  }
+  :global(.rt-story[data-step='1']) .v2 {
+    animation: left2 4s infinite var(--ease);
+    animation-delay: 2s;
+  }
+  @keyframes left {
+    0% { left: 36cqw; opacity: 0; }
+    10% { opacity: 1; }
+    45% { left: 4cqw; opacity: 1; }
+    55%, 100% { left: 4cqw; opacity: 0; }
+  }
+  @keyframes left2 {
+    0% { left: 66cqw; top: 8cqw; opacity: 0; }
+    10% { opacity: 1; }
+    45% { left: 36cqw; opacity: 1; }
+    55%, 100% { left: 36cqw; opacity: 0; }
+  }
+
+  /* 2 */
+  .cut {
+    stroke: var(--bad) !important;
+    stroke-dasharray: 2 2;
+  }
+  .old,
+  .new {
+    fill: none;
+    stroke-width: 1.2;
+  }
+  .old {
+    stroke: var(--line-2);
+    stroke-dasharray: 1 2;
+  }
+  .new {
+    stroke: var(--text);
+  }
+  .pk {
+    fill: var(--text);
+    offset-path: path('M12 50 L38 20 L38 80 L66 80 L90 50');
+  }
+  :global(.rt-story[data-step='2']) .pk {
+    animation: hop 3s infinite linear;
+  }
+  @keyframes hop {
+    from { offset-distance: 0%; }
+    to { offset-distance: 100%; }
+  }
+  :global(.rt-story[data-step='2']) .cut {
+    animation: blink 3s infinite;
+  }
+  @keyframes blink {
+    50% { opacity: 0.3; }
+  }
+
+  /* 3 */
+  .stack {
+    display: grid;
+    gap: 1.2cqw;
+    margin-top: 0;
+  }
+  .stack .card {
+    padding: 1cqw 1.8cqw;
+  }
+  .layer b {
+    font-size: calc(1.55cqw * var(--ts));
+  }
+  .wall {
+    border-top: 2px dashed var(--bad);
+    position: relative;
+    height: 1cqw;
+  }
+  .wall span {
+    position: absolute;
+    right: 0;
+    top: -1.2cqw;
+    padding: 0 1cqw;
+    background: var(--bg-2);
+    color: var(--bad);
+    font-size: calc(1.3cqw * var(--ts));
+  }
+  :global(.rt-story[data-step='3']) .eng,
+  :global(.rt-story[data-step='3']) .tests {
+    animation: lift 4s infinite var(--ease);
+  }
+  :global(.rt-story[data-step='3']) .tests {
+    animation-delay: 0.4s;
+  }
+  @keyframes lift {
+    0%, 20% { box-shadow: none; }
+    30%, 100% { box-shadow: 0 0 0 2px var(--ok); }
+  }
+</style>

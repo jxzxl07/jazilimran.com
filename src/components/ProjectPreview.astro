@@ -96,33 +96,23 @@ const { slug } = Astro.props;
 </div>
 
 <script>
-  import { drawPose } from '../scripts/pose';
+  import { drawScene } from '../scripts/pose';
 
-  // Draw the pull shot on loop, but only while the row is on screen or hovered.
+  // The pull shot on loop, only while its row is on screen or hovered.
   document.querySelectorAll<HTMLCanvasElement>('canvas[data-pose-preview]').forEach((canvas) => {
-    // Draw into the middle of a wide canvas: the pose lives in a square.
     const ctx = canvas.getContext('2d')!;
-    const square = document.createElement('canvas');
-    square.width = square.height = 400;
-    const sctx = square.getContext('2d')!;
-    const row = canvas.closest('li, .pv-host') ?? canvas;
+    const host = canvas.closest('li, .pv-host') ?? canvas;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let t0 = performance.now();
-    const paint = (t: number) => {
-      drawPose(sctx, t, { scale: 1.5 });
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(square, 0, 0, 400, 400, (canvas.width - 420) / 2, 0, 420, 420);
-    };
+    const t0 = performance.now();
     const loop = (now: number) => {
-      const active = row.classList.contains('inview') || row.matches(':hover');
-      if (active) {
-        // 1.8 s swing, then a 0.8 s hold on the finish.
-        const cycle = ((now - t0) / 2600) % 1;
-        paint(Math.min(1, cycle / 0.7));
+      if (host.classList.contains('inview') || host.matches(':hover')) {
+        // 2.2 s for the shot at half speed, then a 0.8 s hold on the finish.
+        const cycle = ((now - t0) / 3000) % 1;
+        drawScene(ctx, Math.min(1, cycle / 0.73));
       }
       requestAnimationFrame(loop);
     };
-    paint(0.72);
+    drawScene(ctx, 0.66);
     if (!reduced) requestAnimationFrame(loop);
   });
 </script>

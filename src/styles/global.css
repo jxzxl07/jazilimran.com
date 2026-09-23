@@ -230,27 +230,6 @@ kbd {
   padding: clamp(72px, 12vw, 140px) 0;
   border-top: 1px solid var(--line);
 }
-.section-head {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 24px;
-  align-items: baseline;
-  margin-bottom: 48px;
-}
-.section-head h2 {
-  font-weight: 400;
-  font-size: clamp(30px, 4vw, 44px);
-  line-height: 1.1;
-  letter-spacing: -0.015em;
-  margin: 0;
-}
-@media (max-width: 720px) {
-  .section-head {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-}
-
 .btn {
   display: inline-flex;
   align-items: center;
@@ -402,5 +381,57 @@ kbd {
   }
   @view-transition {
     navigation: none;
+  }
+}
+
+/* ---------- Story stages: one animated scene per "How it works" step ---------- */
+.story {
+  position: relative;
+  aspect-ratio: 16 / 11;
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle, var(--line) 1px, transparent 1.2px) 0 0 / 18px 18px,
+    var(--bg-2);
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: calc(1.5cqw * var(--ts));
+  color: var(--muted);
+  container-type: inline-size;
+  --ts: 1.15;
+}
+.story .scene {
+  position: absolute;
+  inset: 0;
+  padding: 5cqw;
+  opacity: 0;
+  transform: translateY(10px) scale(0.985);
+  transition: opacity 0.5s var(--ease), transform 0.6s var(--ease);
+  pointer-events: none;
+}
+.story:not([data-step]) .s0,
+.story[data-step='0'] .s0,
+.story[data-step='1'] .s1,
+.story[data-step='2'] .s2,
+.story[data-step='3'] .s3 {
+  opacity: 1;
+  transform: none;
+}
+.story .cap {
+  position: absolute;
+  left: 5cqw;
+  bottom: 4cqw;
+  font-size: calc(1.7cqw * var(--ts));
+  color: var(--faint);
+}
+.story .card {
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--bg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .story * {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
   }
 }

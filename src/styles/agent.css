@@ -376,3 +376,33 @@
     font-size: 18px;
   }
 }
+
+/* Shortcut labels per device, and a thumb-reachable button on touch screens. */
+:root[data-keys='touch'] .kb-only,
+:root[data-keys='touch'] kbd[data-kbd] {
+  display: none;
+}
+.ask-fab {
+  display: none;
+}
+:root[data-keys='touch'] .ask-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 18px 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--agent);
+  color: var(--agent-ink);
+  font-family: var(--mono);
+  font-size: 14px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+}
+:root[data-keys='touch'] #agent-log {
+  bottom: 76px;
+}

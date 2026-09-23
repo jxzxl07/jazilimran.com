@@ -1,0 +1,338 @@
+---
+// JevBar, step by step, on one job application: read it, fill it, refuse to
+// submit it, report what's left.
+const fields = [
+  { role: 'text field', name: 'First name', value: 'Jazil' },
+  { role: 'text field', name: 'Email', value: 'jazil@…' },
+  { role: 'popup', name: 'Degree', value: 'Bachelors' },
+];
+---
+
+<div class="story jb-story" data-story data-step="0">
+  <div class="win card">
+    <div class="win-bar"><i></i><i></i><i></i><span>Software Engineer Intern · Application</span></div>
+    <div class="form">
+      {
+        fields.map((f, i) => (
+          <div class="f" style={`--i:${i}`}>
+            <span class="lab">{f.name}</span>
+            <span class="box">
+              <span class="val">{f.value}</span>
+              <span class="ax">
+                {f.role} · {f.name}
+              </span>
+            </span>
+          </div>
+        ))
+      }
+      <div class="f tall" style="--i:3">
+        <span class="lab">Why this role?</span>
+        <span class="box">
+          <span class="lines"><b></b><b></b><b></b></span>
+          <span class="ax">text area · Why this role?</span>
+        </span>
+      </div>
+      <div class="actions">
+        <span class="b draft">Save draft<span class="ax">button · Save draft</span></span>
+        <span class="b submit">Submit application<span class="ax">button · Submit application</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 0: read the screen -->
+  <div class="scene s0">
+    <p class="tag">accessibility tree · 6 named controls</p>
+  </div>
+  <!-- 1: rules first -->
+  <div class="scene s1">
+    <p class="bubble">“Fill in this application”</p>
+    <p class="tag">form filler · page order · no model needed</p>
+  </div>
+  <!-- 2: authorised in code -->
+  <div class="scene s2">
+    <svg class="cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2.5 20 11l-7 1.8L9.6 20z"></path></svg>
+    <pre class="code card">authorize(.click, "Submit application")
+<span>→ .refuse("…JevBar fills it in and stops;
+   sending it is yours.")</span></pre>
+  </div>
+  <!-- 3: answers from the CV, then a report -->
+  <div class="scene s3">
+    <div class="report card">
+      <p class="rh">Report</p>
+      <p><span class="ok">Filled</span> 4 of 4 fields, in page order</p>
+      <p><span class="amb">Left for you</span> the submit button</p>
+      <p class="muted">Not submitted. Review it and send it yourself.</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .win {
+    position: absolute;
+    left: 5cqw;
+    top: 7cqw;
+    width: 56cqw;
+    overflow: hidden;
+    font-size: calc(1.6cqw * var(--ts));
+  }
+  .win-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6cqw;
+    padding: 1.2cqw 1.6cqw;
+    border-bottom: 1px solid var(--line);
+    color: var(--faint);
+  }
+  .win-bar i {
+    width: 1.1cqw;
+    height: 1.1cqw;
+    border-radius: 50%;
+    background: var(--line-2);
+  }
+  .win-bar span {
+    margin-left: 1cqw;
+  }
+  .form {
+    padding: 2cqw;
+    display: grid;
+    gap: 1.4cqw;
+  }
+  .f {
+    display: grid;
+    gap: 0.5cqw;
+  }
+  .lab {
+    color: var(--faint);
+  }
+  .box {
+    position: relative;
+    height: 3.6cqw;
+    border: 1px solid var(--line-2);
+    border-radius: 0.8cqw;
+    background: var(--bg-2);
+    display: flex;
+    align-items: center;
+    padding: 0 1.2cqw;
+    color: var(--text);
+    transition: border-color 0.4s, box-shadow 0.4s;
+  }
+  .tall .box {
+    height: 7cqw;
+    align-items: flex-start;
+    padding-top: 1.2cqw;
+  }
+  .val {
+    white-space: nowrap;
+    overflow: hidden;
+    width: 0;
+  }
+  .lines {
+    display: grid;
+    gap: 1cqw;
+    width: 100%;
+  }
+  .lines b {
+    display: block;
+    height: 0.7cqw;
+    border-radius: 1cqw;
+    background: var(--muted);
+    width: 0;
+  }
+  .ax {
+    position: absolute;
+    right: 0.8cqw;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: calc(1.25cqw * var(--ts));
+    padding: 0.2cqw 0.7cqw;
+    border-radius: 0.5cqw;
+    background: var(--text);
+    color: var(--bg);
+    opacity: 0;
+    white-space: nowrap;
+  }
+  .actions {
+    display: flex;
+    gap: 1.2cqw;
+    margin-top: 0.6cqw;
+  }
+  .b {
+    position: relative;
+    padding: 1cqw 1.6cqw;
+    border-radius: 0.8cqw;
+    border: 1px solid var(--line-2);
+    color: var(--text);
+  }
+  .b.submit {
+    background: var(--text);
+    color: var(--bg);
+  }
+  .b .ax {
+    right: auto;
+    left: 0;
+    top: auto;
+    bottom: calc(100% + 0.6cqw);
+    transform: none;
+  }
+
+  .tag {
+    position: absolute;
+    right: 5cqw;
+    top: 7cqw;
+    margin: 0;
+    width: 28cqw;
+    font-size: calc(1.5cqw * var(--ts));
+    color: var(--muted);
+    border-left: 2px solid var(--line-2);
+    padding-left: 1.4cqw;
+  }
+  .bubble {
+    position: absolute;
+    right: 5cqw;
+    top: 20cqw;
+    width: 28cqw;
+    margin: 0;
+    padding: 1.6cqw 2cqw;
+    border-radius: 1.6cqw 1.6cqw 1.6cqw 0.3cqw;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    color: var(--text);
+    font-family: var(--serif);
+    font-size: calc(2.4cqw * var(--ts));
+  }
+  .s1 .tag {
+    top: 38cqw;
+  }
+
+  /* 0: every control gets its role and name, one after another */
+  :global(.jb-story[data-step='0']) .ax {
+    animation: axin 4.5s infinite;
+  }
+  :global(.jb-story[data-step='0']) .f:nth-child(2) .ax { animation-delay: 0.25s; }
+  :global(.jb-story[data-step='0']) .f:nth-child(3) .ax { animation-delay: 0.5s; }
+  :global(.jb-story[data-step='0']) .f:nth-child(4) .ax { animation-delay: 0.75s; }
+  :global(.jb-story[data-step='0']) .draft .ax { animation-delay: 1s; }
+  :global(.jb-story[data-step='0']) .submit .ax { animation-delay: 1.25s; }
+  :global(.jb-story[data-step='0']) .box,
+  :global(.jb-story[data-step='0']) .b {
+    box-shadow: 0 0 0 1px var(--muted);
+  }
+  @keyframes axin {
+    0%, 4% { opacity: 0; }
+    10%, 85% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* 1 onwards: fields fill in page order */
+  :global(.jb-story[data-step='1']) .val,
+  :global(.jb-story[data-step='2']) .val,
+  :global(.jb-story[data-step='3']) .val {
+    animation: type 5s infinite steps(12);
+    animation-delay: calc(var(--i) * 0.6s);
+  }
+  :global(.jb-story[data-step='2']) .val,
+  :global(.jb-story[data-step='3']) .val {
+    animation: none;
+    width: 100%;
+  }
+  @keyframes type {
+    0% { width: 0; }
+    25%, 100% { width: 100%; }
+  }
+  /* 3: the open answer is drafted from the CV */
+  :global(.jb-story[data-step='3']) .lines b {
+    animation: draft 4s infinite ease-out;
+  }
+  :global(.jb-story[data-step='3']) .lines b:nth-child(2) { animation-delay: 0.3s; }
+  :global(.jb-story[data-step='3']) .lines b:nth-child(3) { animation-delay: 0.6s; }
+  @keyframes draft {
+    0% { width: 0; }
+    35%, 100% { width: 92%; }
+  }
+  :global(.jb-story[data-step='3']) .lines b:nth-child(3) {
+    animation-name: draft3;
+  }
+  @keyframes draft3 {
+    0% { width: 0; }
+    35%, 100% { width: 55%; }
+  }
+
+  /* 2: the cursor goes for Submit and is refused */
+  .cursor {
+    position: absolute;
+    width: 3.2cqw;
+    height: 3.2cqw;
+    left: 70cqw;
+    top: 60cqw;
+    fill: var(--text);
+    stroke: var(--bg);
+    stroke-width: 1.2;
+    filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.5));
+  }
+  :global(.jb-story[data-step='2']) .cursor {
+    animation: aim 4s infinite var(--ease);
+  }
+  @keyframes aim {
+    0% { left: 70cqw; top: 60cqw; }
+    35%, 100% { left: 31cqw; top: 47cqw; }
+  }
+  :global(.jb-story[data-step='2']) .b.submit {
+    animation: refuse 4s infinite;
+  }
+  @keyframes refuse {
+    0%, 36% { box-shadow: none; }
+    40%, 95% { box-shadow: 0 0 0 0.5cqw var(--bad); }
+  }
+  .code {
+    position: absolute;
+    right: 5cqw;
+    top: 8cqw;
+    width: 33cqw;
+    margin: 0;
+    padding: 1.6cqw;
+    font-size: calc(1.45cqw * var(--ts));
+    line-height: 1.6;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+  .code span {
+    color: var(--bad);
+  }
+  :global(.jb-story[data-step='2']) .code span {
+    animation: show 4s infinite;
+  }
+  @keyframes show {
+    0%, 38% { opacity: 0; }
+    44%, 100% { opacity: 1; }
+  }
+
+  .report {
+    position: absolute;
+    right: 5cqw;
+    top: 12cqw;
+    width: 33cqw;
+    padding: 2cqw;
+    font-size: calc(1.55cqw * var(--ts));
+    line-height: 1.6;
+  }
+  .report p {
+    margin: 0 0 0.6cqw;
+    color: var(--text);
+  }
+  .report .rh {
+    color: var(--faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .amb {
+    color: var(--muted);
+    text-decoration: underline;
+  }
+  :global(.jb-story[data-step='3']) .report {
+    animation: slide 4s infinite var(--ease);
+  }
+  @keyframes slide {
+    0%, 30% { opacity: 0; transform: translateX(3cqw); }
+    40%, 100% { opacity: 1; transform: none; }
+  }
+</style>

@@ -1,0 +1,327 @@
+---
+// CreaseLab from clip to coaching, one scene per step.
+const joints: [number, number][] = [
+  [50, 16], [44, 26], [56, 26], [40, 40], [60, 40], [46, 50], [54, 50], [45, 56], [55, 56], [43, 74], [57, 74], [42, 92], [58, 92],
+];
+const bones: [number, number][] = [[0, 1], [0, 2], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [1, 7], [2, 8], [7, 8], [7, 9], [8, 10], [9, 11], [10, 12]];
+const checks = ['Athlete visible', 'Single athlete in frame', 'Shoulders, hips and knees visible', 'Full body inside the frame', 'Clear movement detected'];
+---
+
+<div class="story cl-story" data-story data-step="0">
+  <!-- 0: pose, not pixels -->
+  <div class="scene s0">
+    <div class="frame card">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+        {bones.map(([a, b]) => <line x1={joints[a][0]} y1={joints[a][1]} x2={joints[b][0]} y2={joints[b][1]} />)}
+        {joints.map(([x, y], i) => <circle cx={x} cy={y} r="1.6" style={`--i:${i}`} />)}
+      </svg>
+    </div>
+    <div class="side">
+      <p class="k">pixels</p>
+      <p class="big muted">framing, background, lighting, camera</p>
+      <p class="k">pose</p>
+      <p class="big">joints only · the same for every camera</p>
+    </div>
+  </div>
+
+  <!-- 1: the replay -->
+  <div class="scene s1">
+    <div class="player card">
+      <div class="screen"></div>
+      <div class="timeline">
+        <span class="mk" style="--at:8">stance</span>
+        <span class="mk" style="--at:30">backlift</span>
+        <span class="mk" style="--at:62">contact</span>
+        <span class="mk" style="--at:86">finish</span>
+        <span class="head"></span>
+      </div>
+      <div class="speeds"><span>0.25×</span><span class="on">0.5×</span><span>1×</span><span>◀ frame ▶</span></div>
+    </div>
+    <div class="metrics">
+      <div class="mc card"><span class="k">front knee flexion</span><b>seeks to contact</b></div>
+      <div class="mc card"><span class="k">shoulder rotation</span><b>seeks to backlift</b></div>
+    </div>
+  </div>
+
+  <!-- 2: gate, then coaching that cites evidence -->
+  <div class="scene s2">
+    <div class="gate card">
+      <span class="k">capture-quality gate</span>
+      {checks.map((c, i) => <p class={`q ${i === 3 ? 'no' : ''}`} style={`--i:${i}`}>{c}</p>)}
+      <p class="rerec">✗ feet cut off · move back and re-record</p>
+    </div>
+    <div class="coach card">
+      <span class="k">coaching cue</span>
+      <b>Keep your head still through contact.</b>
+      <span class="cite">cites: head movement at contact</span>
+    </div>
+  </div>
+
+  <!-- 3: private by design -->
+  <div class="scene s3">
+    <div class="flow">
+      <div class="file card"><span class="k">your clip</span><b>shot.mp4</b></div>
+      <span class="arrow">→</span>
+      <div class="file card"><span class="k">temporary directory</span><b>analysed</b></div>
+      <span class="arrow">→</span>
+      <div class="file card gone"><span class="k">after the result</span><b>deleted</b></div>
+    </div>
+    <p class="note">Nothing stored. Nothing shared. Never used for training.</p>
+  </div>
+</div>
+
+<style>
+  .k {
+    display: block;
+    margin: 0 0 0.6cqw;
+    color: var(--faint);
+    font-size: calc(1.3cqw * var(--ts));
+  }
+  b {
+    font-weight: 400;
+    color: var(--text);
+    font-size: calc(1.55cqw * var(--ts));
+  }
+  .card {
+    padding: 1.6cqw 1.8cqw;
+  }
+
+  /* 0 */
+  .frame {
+    position: absolute;
+    left: 5cqw;
+    top: 5cqw;
+    width: 40cqw;
+    height: 56cqw;
+    padding: 0;
+    overflow: hidden;
+    background:
+      repeating-linear-gradient(90deg, var(--bg-3) 0 2px, transparent 2px 5px),
+      repeating-linear-gradient(0deg, var(--bg-2) 0 3px, transparent 3px 7px),
+      var(--bg);
+  }
+  .frame svg {
+    width: 100%;
+    height: 100%;
+  }
+  .frame line {
+    stroke: var(--ok);
+    stroke-width: 1.2;
+    stroke-linecap: round;
+    stroke-dasharray: 40;
+    stroke-dashoffset: 0;
+  }
+  .frame circle {
+    fill: var(--text);
+  }
+  :global(.cl-story[data-step='0']) .frame circle {
+    animation: pop 4.5s infinite;
+    animation-delay: calc(var(--i) * 0.08s);
+  }
+  :global(.cl-story[data-step='0']) .frame line {
+    animation: draw 4.5s infinite;
+  }
+  @keyframes pop {
+    0%, 4% { opacity: 0; transform: scale(0); }
+    10%, 100% { opacity: 1; transform: none; }
+  }
+  .frame circle {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  @keyframes draw {
+    0%, 25% { stroke-dashoffset: 40; }
+    45%, 100% { stroke-dashoffset: 0; }
+  }
+  .side {
+    position: absolute;
+    right: 5cqw;
+    top: 10cqw;
+    width: 38cqw;
+  }
+  .side .big {
+    font-family: var(--serif);
+    font-size: calc(2.6cqw * var(--ts));
+    line-height: 1.25;
+    margin: 0 0 4cqw;
+    color: var(--text);
+  }
+  .side .big.muted {
+    color: var(--faint);
+    text-decoration: line-through;
+    text-decoration-color: var(--line-2);
+  }
+
+  /* 1 */
+  .player {
+    margin-top: 2cqw;
+    padding: 1.6cqw;
+  }
+  .screen {
+    height: 24cqw;
+    border-radius: 0.8cqw;
+    background:
+      radial-gradient(circle at 50% 40%, var(--bg-3), transparent 60%),
+      var(--bg-2);
+  }
+  .timeline {
+    position: relative;
+    height: 5cqw;
+    margin-top: 2cqw;
+    border-top: 2px solid var(--line-2);
+  }
+  .mk {
+    position: absolute;
+    left: calc(var(--at) * 1%);
+    top: -0.8cqw;
+    transform: translateX(-50%);
+    font-size: calc(1.25cqw * var(--ts));
+    padding-top: 2.2cqw;
+    color: var(--faint);
+  }
+  .mk::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1.4cqw;
+    height: 1.4cqw;
+    margin-left: -0.7cqw;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--muted);
+  }
+  .head {
+    position: absolute;
+    top: -1.6cqw;
+    left: 0;
+    width: 2px;
+    height: 3cqw;
+    background: var(--text);
+  }
+  :global(.cl-story[data-step='1']) .head {
+    animation: play 5s infinite linear;
+  }
+  @keyframes play {
+    from { left: 0; }
+    to { left: 100%; }
+  }
+  .speeds {
+    display: flex;
+    gap: 2cqw;
+    font-size: calc(1.3cqw * var(--ts));
+    color: var(--faint);
+  }
+  .speeds .on {
+    color: var(--text);
+  }
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2cqw;
+    margin-top: 2cqw;
+  }
+  :global(.cl-story[data-step='1']) .mc:first-child {
+    animation: glow 5s infinite;
+    animation-delay: 3.1s;
+  }
+  :global(.cl-story[data-step='1']) .mc:last-child {
+    animation: glow 5s infinite;
+    animation-delay: 1.5s;
+  }
+  @keyframes glow {
+    0%, 12% { box-shadow: 0 0 0 2px var(--text); }
+    20%, 100% { box-shadow: none; }
+  }
+
+  /* 2 */
+  .gate {
+    position: absolute;
+    left: 5cqw;
+    top: 5cqw;
+    width: 46cqw;
+  }
+  .q {
+    margin: 0;
+    padding: 0.8cqw 0;
+    border-top: 1px solid var(--line);
+    font-size: calc(1.45cqw * var(--ts));
+    color: var(--faint);
+  }
+  .q::before {
+    content: '○ ';
+  }
+  :global(.cl-story[data-step='2']) .q {
+    animation: ok 5s infinite;
+    animation-delay: calc(var(--i) * 0.3s);
+  }
+  :global(.cl-story[data-step='2']) .q.no {
+    animation-name: no;
+  }
+  @keyframes ok {
+    0%, 6% { color: var(--faint); }
+    10%, 100% { color: var(--ok); }
+  }
+  @keyframes no {
+    0%, 6% { color: var(--faint); }
+    10%, 100% { color: var(--bad); }
+  }
+  .rerec {
+    margin: 1.2cqw 0 0;
+    color: var(--bad);
+    font-size: calc(1.35cqw * var(--ts));
+    opacity: 0;
+  }
+  :global(.cl-story[data-step='2']) .rerec {
+    animation: show 5s infinite;
+  }
+  @keyframes show {
+    0%, 36% { opacity: 0; }
+    42%, 100% { opacity: 1; }
+  }
+  .coach {
+    position: absolute;
+    right: 5cqw;
+    top: 20cqw;
+    width: 36cqw;
+  }
+  .coach b {
+    display: block;
+    font-family: var(--serif);
+    font-size: calc(2.3cqw * var(--ts));
+    line-height: 1.3;
+  }
+  .cite {
+    display: block;
+    margin-top: 1cqw;
+    font-size: calc(1.3cqw * var(--ts));
+    color: var(--muted);
+  }
+
+  /* 3 */
+  .flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: center;
+    gap: 1.6cqw;
+    margin-top: 16cqw;
+  }
+  .arrow {
+    color: var(--faint);
+    font-size: 2.2cqw;
+  }
+  :global(.cl-story[data-step='3']) .gone {
+    animation: gone 4.5s infinite;
+  }
+  @keyframes gone {
+    0%, 40% { opacity: 1; }
+    60%, 100% { opacity: 0.35; transform: scale(0.96); border-style: dashed; }
+  }
+  .note {
+    margin: 8cqw 0 0;
+    text-align: center;
+    font-family: var(--serif);
+    font-size: calc(2.6cqw * var(--ts));
+    color: var(--text);
+  }
+</style>

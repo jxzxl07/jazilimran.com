@@ -1,0 +1,298 @@
+---
+// Encrypta's four guarantees, one scene each.
+---
+
+<div class="story en-story" data-story data-step="0">
+  <!-- 0: the password never leaves -->
+  <div class="scene s0">
+    <div class="row">
+      <div class="node card"><span class="k">password</span><b>••••••••••</b></div>
+      <span class="arrow">→</span>
+      <div class="node card"><span class="k">PBKDF2-SHA256</span><b class="count"><span class="n"></span> rounds</b></div>
+      <span class="arrow">→</span>
+      <div class="node card"><span class="k">HKDF → auth</span><b>7c1e…a90f</b></div>
+    </div>
+    <div class="wire"><span class="pkt">7c1e…a90f</span></div>
+    <div class="server card">
+      <span class="k">server stores</span>
+      <b>Argon2id(7c1e…a90f)</b>
+      <span class="never">the password itself: never sent</span>
+    </div>
+  </div>
+
+  <!-- 1: keys made and sealed on the device -->
+  <div class="scene s1">
+    <div class="pair">
+      <div class="key card pub"><span class="k">public key</span><b>X25519 · shared</b></div>
+      <div class="key card priv"><span class="k">private key</span><b>X25519 · yours</b></div>
+    </div>
+    <div class="vault card">
+      <svg viewBox="0 0 24 24" class="lock"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path class="shackle" d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+      <span class="k">sealed with AES-256-GCM</span>
+      <b>IndexedDB · non-extractable</b>
+    </div>
+    <p class="cap">generated in the browser at sign-up, sealed under a key derived from your password</p>
+  </div>
+
+  <!-- 2: a message bound to its sender -->
+  <div class="scene s2">
+    <div class="msg card">
+      <span class="k">alice writes</span>
+      <b class="plain">meet me outside Caius at seven</b>
+      <b class="cipher">9f3a c1e0 77b4 02de 51aa e8c3 90f1 …</b>
+    </div>
+    <div class="aad card"><span class="k">bound as associated data</span><b>from alice → to bob</b></div>
+    <div class="forge card">
+      <span class="k">server rewrites the sender</span>
+      <b>from mallory → to bob</b>
+      <span class="x">✗ tag mismatch · rejected</span>
+    </div>
+  </div>
+
+  <!-- 3: groups rotate keys -->
+  <div class="scene s3">
+    <div class="group">
+      {['A', 'B', 'C', 'D'].map((m) => <span class={`m m-${m}`}>{m}</span>)}
+    </div>
+    <div class="gkey card">
+      <span class="k">group key</span>
+      <b><span class="v1">v1 · sealed to A B C D</span><span class="v2">v2 · sealed to A B C</span></b>
+    </div>
+    <p class="cap">when D leaves, the next sender makes a new key that D never receives</p>
+  </div>
+</div>
+
+<style>
+  .k {
+    display: block;
+    color: var(--faint);
+    font-size: calc(1.3cqw * var(--ts));
+    margin-bottom: 0.6cqw;
+  }
+  b {
+    font-weight: 400;
+    color: var(--text);
+    font-size: calc(1.6cqw * var(--ts));
+  }
+  .node,
+  .key,
+  .server,
+  .vault,
+  .msg,
+  .aad,
+  .forge,
+  .gkey {
+    padding: 1.6cqw 1.8cqw;
+  }
+
+  /* 0 */
+  .row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: center;
+    gap: 1.4cqw;
+    margin-top: 4cqw;
+  }
+  .arrow {
+    color: var(--faint);
+    font-size: 2cqw;
+  }
+  .count .n::after {
+    content: '600,000';
+  }
+  :global(.en-story[data-step='0']) .count .n::after {
+    animation: count 4s infinite steps(1);
+  }
+  @keyframes count {
+    0% { content: '0'; }
+    6% { content: '48,210'; }
+    12% { content: '151,904'; }
+    18% { content: '288,017'; }
+    24% { content: '402,666'; }
+    30% { content: '531,090'; }
+    36%, 100% { content: '600,000'; }
+  }
+  .wire {
+    position: relative;
+    height: 12cqw;
+    margin: 0 8cqw;
+    border-right: 1px dashed var(--line-2);
+  }
+  .pkt {
+    position: absolute;
+    right: -6cqw;
+    top: 0;
+    font-size: calc(1.3cqw * var(--ts));
+    padding: 0.3cqw 0.8cqw;
+    border-radius: 0.5cqw;
+    background: var(--bg-3);
+    color: var(--text);
+    opacity: 0;
+  }
+  :global(.en-story[data-step='0']) .pkt {
+    animation: down 4s infinite var(--ease);
+  }
+  @keyframes down {
+    0%, 38% { top: 0; opacity: 0; }
+    44% { opacity: 1; }
+    70%, 100% { top: 9cqw; opacity: 1; }
+  }
+  .server {
+    width: 44cqw;
+    margin-left: auto;
+  }
+  .never {
+    display: block;
+    margin-top: 0.8cqw;
+    color: var(--ok);
+    font-size: calc(1.35cqw * var(--ts));
+  }
+
+  /* 1 */
+  .pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3cqw;
+    margin-top: 4cqw;
+  }
+  .vault {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 2cqw;
+    align-items: center;
+    width: 52cqw;
+    margin: 10cqw auto 0;
+  }
+  .vault .lock {
+    grid-row: 1 / span 2;
+    width: 5cqw;
+    height: 5cqw;
+    fill: none;
+    stroke: var(--text);
+    stroke-width: 1.5;
+  }
+  .shackle {
+    transform-origin: 16px 11px;
+  }
+  :global(.en-story[data-step='1']) .priv {
+    animation: drop 4.5s infinite var(--ease);
+  }
+  @keyframes drop {
+    0%, 15% { transform: none; opacity: 1; }
+    45% { transform: translate(-6cqw, 16cqw) scale(0.7); opacity: 0; }
+    46%, 100% { opacity: 0; transform: translate(-6cqw, 16cqw) scale(0.7); }
+  }
+  :global(.en-story[data-step='1']) .shackle {
+    animation: shut 4.5s infinite;
+  }
+  @keyframes shut {
+    0%, 42% { transform: translateY(-2px) rotate(20deg); }
+    50%, 100% { transform: none; }
+  }
+
+  /* 2 */
+  .msg {
+    margin-top: 3cqw;
+    position: relative;
+  }
+  .msg b {
+    display: block;
+  }
+  .cipher {
+    color: var(--muted) !important;
+    font-size: calc(1.5cqw * var(--ts));
+  }
+  :global(.en-story[data-step='2']) .plain {
+    animation: fadeout 5s infinite;
+  }
+  :global(.en-story[data-step='2']) .cipher {
+    animation: fadein 5s infinite;
+  }
+  @keyframes fadeout {
+    0%, 20% { opacity: 1; filter: none; }
+    30%, 100% { opacity: 0.25; filter: blur(2px); }
+  }
+  @keyframes fadein {
+    0%, 20% { opacity: 0; }
+    30%, 100% { opacity: 1; }
+  }
+  .aad {
+    width: 44cqw;
+    margin-top: 2.4cqw;
+  }
+  .forge {
+    position: absolute;
+    right: 5cqw;
+    bottom: 5cqw;
+    width: 40cqw;
+  }
+  .x {
+    display: block;
+    margin-top: 0.8cqw;
+    color: var(--bad);
+    font-size: calc(1.4cqw * var(--ts));
+    opacity: 0;
+  }
+  :global(.en-story[data-step='2']) .forge {
+    animation: fadein 5s infinite;
+    animation-delay: 0.8s;
+  }
+  :global(.en-story[data-step='2']) .x {
+    animation: fadein 5s infinite;
+    animation-delay: 1.6s;
+  }
+
+  /* 3 */
+  .group {
+    display: flex;
+    justify-content: center;
+    gap: 4cqw;
+    margin-top: 7cqw;
+  }
+  .m {
+    width: 9cqw;
+    height: 9cqw;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line-2);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 2.2cqw;
+  }
+  :global(.en-story[data-step='3']) .m-D {
+    animation: leave 5s infinite var(--ease);
+  }
+  @keyframes leave {
+    0%, 25% { opacity: 1; transform: none; }
+    40%, 100% { opacity: 0.15; transform: translateY(3cqw); }
+  }
+  .gkey {
+    width: 46cqw;
+    margin: 6cqw auto 0;
+  }
+  .gkey b {
+    display: grid;
+  }
+  .gkey b span {
+    grid-area: 1 / 1;
+  }
+  .v2 {
+    opacity: 0;
+    color: var(--ok);
+  }
+  :global(.en-story[data-step='3']) .v1 {
+    animation: fadeout2 5s infinite;
+  }
+  :global(.en-story[data-step='3']) .v2 {
+    animation: fadein2 5s infinite;
+  }
+  @keyframes fadeout2 {
+    0%, 45% { opacity: 1; }
+    52%, 100% { opacity: 0; }
+  }
+  @keyframes fadein2 {
+    0%, 45% { opacity: 0; }
+    52%, 100% { opacity: 1; }
+  }
+</style>

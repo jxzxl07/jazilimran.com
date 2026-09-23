@@ -8,7 +8,7 @@ import Base from '../layouts/Base.astro';
     <h1>I read this page and found nothing to act on.</h1>
     <p class="muted">
       The agent would rather say so than guess where you meant to go. Try the <a href="/">home page</a>, the
-      <a href="/#work">work</a>, or ask it: press <kbd>⌘K</kbd>.
+      <a href="/#work">work</a>, or <button class="linkish" type="button" data-agent-open>ask the agent</button>.
     </p>
   </div>
 </Base>
@@ -28,5 +28,12 @@ import Base from '../layouts/Base.astro';
   }
   p {
     font-size: 20px;
+  }
+  .linkish {
+    border: 0;
+    padding: 0;
+    background: none;
+    text-decoration: underline;
+    cursor: pointer;
   }
 </style>

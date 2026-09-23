@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import { projects } from '../data/projects';
 
-// The CV, as a page. "Save as PDF" prints it cleanly. No phone number, on purpose.
+// The CV, as a page. No phone number, on purpose.
 const bullets: Record<string, string[]> = {
   jevbar: [
     'macOS menu-bar agent: hold ⌘⇧Space, speak, and it acts in the frontmost app through the accessibility tree.',
@@ -49,7 +49,6 @@ const bullets: Record<string, string[]> = {
           <a href="https://www.linkedin.com/in/jazilimran/">linkedin.com/in/jazilimran</a>
         </p>
       </div>
-      <button class="btn no-print" type="button" onclick="window.print()">Save as PDF</button>
     </header>
 
     <section>
@@ -189,8 +188,7 @@ const bullets: Record<string, string[]> = {
   @media print {
     :global(.topbar),
     :global(.footer),
-    :global(#agent-log),
-    .no-print {
+    :global(#agent-log) {
       display: none !important;
     }
     :global(body) {

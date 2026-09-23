@@ -15,19 +15,16 @@ const cases = [
   <div class="demo-bar">
     <span class="live">Live · JevBar’s policy, running in your browser</span>
     <span class="spacer"></span>
-    <span>authorize(action, task)</span>
+    <span class="sig">authorize(action, task)</span>
+  </div>
+  <div class="video">
+    <video src="/media/jevbar.mp4" poster="/media/jevbar-poster.jpg" controls preload="none" playsinline width="1664" height="1080"></video>
+    <p class="mono cap">JevBar filling a real internship application from one spoken sentence · 1 min 14 s</p>
   </div>
   <div class="demo-body grid">
-    <div class="video">
-      <video src="/media/jevbar.mp4#t=0.1" controls preload="metadata" playsinline width="1664" height="1080"></video>
-      <p class="mono tiny muted">JevBar filling a job application from one spoken sentence. 1 min 14 s.</p>
-    </div>
-    <div class="policy">
-      <p class="lead">
-        Every click and keystroke JevBar makes is checked by one pure function, using the control’s real name from
-        the accessibility tree. Try to get something past it.
-      </p>
-      <form id="jb-form" class="try">
+    <div class="try">
+      <p class="label">Try to get something past it</p>
+      <form id="jb-form" class="try-form">
         <select id="jb-verb" aria-label="Action">
           <option value="click">click</option>
           <option value="typeText">type into</option>
@@ -37,24 +34,28 @@ const cases = [
           <option value="jobApplication">in an application</option>
           <option value="general">anywhere</option>
         </select>
-        <button class="btn" type="submit">Check</button>
+        <button class="btn primary" type="submit">Check</button>
       </form>
       <p class="verdict mono" id="jb-verdict" aria-live="polite"></p>
-      <div class="cases">
-        <button class="btn primary" type="button" id="jb-run" data-agent-play>Run the test cases</button>
-        <table class="mono" id="jb-table">
-          <tbody>
-            {
-              cases.map((c) => (
-                <tr data-verb={c.verb} data-name={c.name} data-task={c.task}>
-                  <td>{c.verb === 'click' ? 'click' : 'type into'} “{c.name}”</td>
-                  <td class="res">–</td>
-                </tr>
-              ))
-            }
-          </tbody>
-        </table>
+      <p class="mono tip">Try “Resend code”, “Next”, “Post comment” or a password field.</p>
+    </div>
+    <div class="cases">
+      <div class="cases-head">
+        <p class="label">Test cases</p>
+        <button class="btn" type="button" id="jb-run" data-agent-play>Run them</button>
       </div>
+      <table class="mono" id="jb-table">
+        <tbody>
+          {
+            cases.map((c) => (
+              <tr data-verb={c.verb} data-name={c.name} data-task={c.task}>
+                <td>{c.verb === 'click' ? 'click' : 'type into'} “{c.name}”</td>
+                <td class="res">–</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
     </div>
   </div>
   <p class="demo-note">
@@ -73,11 +74,15 @@ const cases = [
 
   $('jb-form').addEventListener('submit', (e) => {
     e.preventDefault();
+    verdict();
+  });
+  function verdict() {
     const d = check($<HTMLSelectElement>('jb-verb').value as Verb, $<HTMLInputElement>('jb-name').value, $<HTMLSelectElement>('jb-task').value as TaskKind);
     const v = $('jb-verdict');
     v.className = `verdict mono ${d.allow ? 'ok' : 'bad'}`;
     v.textContent = d.allow ? '✓ allowed' : `⊘ refused: ${d.reason}`;
-  });
+  }
+  verdict();
 
   $('jb-run').addEventListener('click', async () => {
     const rows = [...document.querySelectorAll<HTMLTableRowElement>('#jb-table tr')];
@@ -94,10 +99,11 @@ const cases = [
 </script>
 
 <style>
-  .grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-    gap: 28px;
+  .sig {
+    font-family: var(--mono);
+  }
+  .video {
+    padding: clamp(16px, 3vw, 28px) clamp(16px, 3vw, 28px) 0;
   }
   video {
     width: 100%;
@@ -106,42 +112,70 @@ const cases = [
     border: 1px solid var(--line);
     background: #000;
   }
-  .tiny {
-    font-size: 11.5px;
-    margin: 8px 0 0;
+  .cap {
+    font-size: 12px;
+    color: var(--faint);
+    margin: 10px 0 0;
   }
-  .lead {
-    margin: 0 0 16px;
-    font-size: 17px;
-    color: var(--muted);
-  }
-  .try {
+  .grid {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(20px, 4vw, 48px);
+  }
+  .label {
+    margin: 0 0 12px;
+  }
+  .try-form {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 8px;
   }
-  .try input,
-  .try select {
+  .try-form input,
+  .try-form select {
     border: 1px solid var(--line-2);
     border-radius: 8px;
     background: var(--bg);
-    padding: 8px 10px;
+    padding: 9px 10px;
     font-family: var(--mono);
     font-size: 13px;
     min-width: 0;
   }
-  .btn {
-    height: 38px;
+  .try-form .btn {
+    height: auto;
     justify-content: center;
   }
   .verdict {
-    font-size: 12.5px;
-    min-height: 3.2em;
-    margin: 10px 0;
-    line-height: 1.5;
+    font-size: 13px;
+    line-height: 1.55;
+    margin: 14px 0 8px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line-2);
+    background: var(--bg);
   }
-  .cases .btn {
-    margin-bottom: 10px;
+  .verdict.ok {
+    border-color: color-mix(in srgb, var(--ok) 50%, var(--line-2));
+  }
+  .verdict.bad {
+    border-color: color-mix(in srgb, var(--bad) 50%, var(--line-2));
+  }
+  .tip {
+    font-size: 11.5px;
+    color: var(--faint);
+    margin: 0;
+  }
+  .cases-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .cases-head .label {
+    margin: 0;
+  }
+  .cases-head .btn {
+    height: 34px;
+    font-size: 12px;
   }
   table {
     width: 100%;
@@ -149,7 +183,7 @@ const cases = [
     font-size: 12.5px;
   }
   td {
-    padding: 6px 0;
+    padding: 8px 0;
     border-top: 1px solid var(--line);
   }
   td.res {

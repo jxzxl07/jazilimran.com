@@ -1,0 +1,326 @@
+---
+// NightWatch on its own demo incident: a checkout that charges twice.
+const reqs = [
+  ['GET', '/products/sku-a', '200'],
+  ['POST', '/cart', '200'],
+  ['GET', '/checkout', '200'],
+  ['POST', '/checkout/pay', '504'],
+  ['POST', '/checkout/pay', 'retry'],
+  ['GET', '/orders/1043', '200'],
+];
+const patches = [
+  { id: 'A', kind: 'minimal', lines: ['+ key = idempotency_key(order)', '+ if ledger.seen(key): return', '  capture(order)'], diff: '+6 −1' },
+  { id: 'B', kind: 'defensive', lines: ['- retry_on_timeout(capture)', '+ capture(order)', '+ mark_pending(order)'], diff: '+3 −9' },
+  { id: 'C', kind: 'structural', lines: ['+ class LedgerInquiry:', '+   def status(self, order):', '+     …'], diff: '+41 −12' },
+];
+---
+
+<div class="story nw-story" data-story data-step="0">
+  <!-- 0: detect -->
+  <div class="scene s0">
+    <div class="traffic card">
+      {
+        reqs.map(([m, p, s], i) => (
+          <p class={`req ${i === 4 ? 'flag' : ''}`} style={`--i:${i}`}>
+            <span class="m">{m}</span>
+            <span class="p">{p}</span>
+            <span class="st">{s}</span>
+          </p>
+        ))
+      }
+    </div>
+    <div class="verdict card">
+      <p><b>flagged in under 100 ms</b></p>
+      <p>ledger: 2 captures, 1 order</p>
+      <p class="branch">recent deploy? <span>no</span> → diagnose</p>
+    </div>
+    <p class="cap">rule check + Jev on every request · Gemini only when something's wrong</p>
+  </div>
+
+  <!-- 1: three patches -->
+  <div class="scene s1">
+    <div class="patches">
+      {
+        patches.map((p, i) => (
+          <div class="patch card" style={`--i:${i}`}>
+            <p class="ph">
+              <span>patch {p.id}</span>
+              <span>{p.kind}</span>
+            </p>
+            <pre>{p.lines.join('\n')}</pre>
+            <p class="diff">{p.diff}</p>
+          </div>
+        ))
+      }
+    </div>
+    <p class="cap">three different fixes, each a validated schema, never a guess</p>
+  </div>
+
+  <!-- 2: proven in sandboxes -->
+  <div class="scene s2">
+    <div class="boxes">
+      {
+        patches.map((p, i) => (
+          <div class={`sb card sb-${p.id}`} style={`--i:${i}`}>
+            <p class="ph">
+              <span>sandbox {p.id}</span>
+              <span class="spin" />
+            </p>
+            <p class="chk c1">replay the fault</p>
+            <p class="chk c2">normal checkout</p>
+          </div>
+        ))
+      }
+    </div>
+    <p class="cap">Jev drives a real browser through the attack and a normal journey in each</p>
+  </div>
+
+  <!-- 3: gate and lease -->
+  <div class="scene s3">
+    <div class="gate card">
+      <p class="gh">safety gate</p>
+      <p>patch A touches <b>payments</b></p>
+      <p class="hold">held for a human</p>
+      <p class="appr">✓ approved</p>
+    </div>
+    <div class="lease card">
+      <p class="gh">reversible lease</p>
+      <div class="bar"><i></i></div>
+      <p class="muted">roll back any time · incident report written</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .traffic {
+    position: absolute;
+    left: 5cqw;
+    top: 6cqw;
+    width: 52cqw;
+    padding: 1.4cqw 1.8cqw;
+    font-size: calc(1.6cqw * var(--ts));
+  }
+  .req {
+    display: grid;
+    grid-template-columns: 7cqw 1fr 6cqw;
+    margin: 0;
+    padding: 0.9cqw 0;
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .req:last-child {
+    border-bottom: 0;
+  }
+  .req .st {
+    text-align: right;
+  }
+  .req.flag {
+    color: var(--bad);
+  }
+  :global(.nw-story[data-step='0']) .req {
+    animation: rowin 5s infinite;
+    animation-delay: calc(var(--i) * 0.35s);
+  }
+  @keyframes rowin {
+    0% { opacity: 0; transform: translateY(0.8cqw); }
+    6%, 100% { opacity: 1; transform: none; }
+  }
+  :global(.nw-story[data-step='0']) .req.flag {
+    animation: rowin 5s infinite, flag 5s infinite;
+    animation-delay: 1.4s;
+  }
+  @keyframes flag {
+    0%, 20% { background: transparent; }
+    26%, 100% { background: color-mix(in srgb, var(--bad) 12%, transparent); }
+  }
+  .verdict {
+    position: absolute;
+    right: 5cqw;
+    top: 14cqw;
+    width: 28cqw;
+    padding: 1.8cqw;
+    font-size: calc(1.55cqw * var(--ts));
+    line-height: 1.7;
+  }
+  .verdict p {
+    margin: 0;
+  }
+  .verdict b {
+    color: var(--bad);
+    font-weight: 400;
+  }
+  .branch span {
+    color: var(--text);
+  }
+  :global(.nw-story[data-step='0']) .verdict {
+    animation: popin 5s infinite var(--ease);
+  }
+  @keyframes popin {
+    0%, 36% { opacity: 0; transform: translateX(2cqw); }
+    44%, 100% { opacity: 1; transform: none; }
+  }
+
+  .patches,
+  .boxes {
+    position: absolute;
+    left: 5cqw;
+    right: 5cqw;
+    top: 8cqw;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2cqw;
+  }
+  .patch,
+  .sb {
+    padding: 1.6cqw;
+    font-size: calc(1.4cqw * var(--ts));
+  }
+  .ph {
+    display: flex;
+    justify-content: space-between;
+    margin: 0 0 1.2cqw;
+    color: var(--text);
+  }
+  .ph span + span {
+    color: var(--faint);
+  }
+  pre {
+    margin: 0;
+    font-size: calc(1.3cqw * var(--ts));
+    line-height: 1.7;
+    color: var(--muted);
+    white-space: pre;
+    overflow: hidden;
+  }
+  .diff {
+    margin: 1.2cqw 0 0;
+    color: var(--faint);
+  }
+  :global(.nw-story[data-step='1']) .patch {
+    animation: cardin 5s infinite var(--ease);
+    animation-delay: calc(var(--i) * 0.4s);
+  }
+  @keyframes cardin {
+    0% { opacity: 0; transform: translateY(2cqw); }
+    12%, 100% { opacity: 1; transform: none; }
+  }
+
+  .chk {
+    margin: 0;
+    padding: 0.9cqw 0;
+    border-top: 1px solid var(--line);
+    color: var(--faint);
+  }
+  .chk::before {
+    content: '○ ';
+  }
+  .spin {
+    width: 1.4cqw;
+    height: 1.4cqw;
+    border-radius: 50%;
+    border: 2px solid var(--line-2);
+    border-top-color: var(--text);
+  }
+  :global(.nw-story[data-step='2']) .spin {
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  :global(.nw-story[data-step='2']) .chk {
+    animation: pass 5s infinite;
+  }
+  :global(.nw-story[data-step='2']) .c2 {
+    animation-delay: 0.6s;
+  }
+  :global(.nw-story[data-step='2']) .sb-B .c2 {
+    animation-name: fail;
+  }
+  @keyframes pass {
+    0%, 20% { color: var(--faint); }
+    26%, 100% { color: var(--ok); }
+  }
+  @keyframes fail {
+    0%, 20% { color: var(--faint); }
+    26%, 100% { color: var(--bad); }
+  }
+  :global(.nw-story[data-step='2']) .sb-A {
+    animation: win 5s infinite;
+  }
+  @keyframes win {
+    0%, 45% { box-shadow: none; }
+    52%, 100% { box-shadow: 0 0 0 2px var(--text); }
+  }
+  :global(.nw-story[data-step='2']) .sb-B,
+  :global(.nw-story[data-step='2']) .sb-C {
+    animation: lose 5s infinite;
+  }
+  @keyframes lose {
+    0%, 45% { opacity: 1; }
+    52%, 100% { opacity: 0.45; }
+  }
+
+  .gate,
+  .lease {
+    position: absolute;
+    top: 10cqw;
+    width: 40cqw;
+    padding: 2cqw;
+    font-size: calc(1.6cqw * var(--ts));
+    line-height: 1.7;
+  }
+  .gate {
+    left: 5cqw;
+  }
+  .lease {
+    right: 5cqw;
+  }
+  .gate p,
+  .lease p {
+    margin: 0;
+  }
+  .gh {
+    color: var(--faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 1cqw !important;
+  }
+  .gate b {
+    color: var(--text);
+    font-weight: 400;
+  }
+  .hold {
+    color: var(--muted);
+  }
+  .appr {
+    color: var(--ok);
+    opacity: 0;
+  }
+  :global(.nw-story[data-step='3']) .appr {
+    animation: appr 5s infinite;
+  }
+  @keyframes appr {
+    0%, 30% { opacity: 0; }
+    36%, 100% { opacity: 1; }
+  }
+  .bar {
+    height: 1cqw;
+    border-radius: 1cqw;
+    background: var(--bg-3);
+    overflow: hidden;
+    margin: 1.4cqw 0;
+  }
+  .bar i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--ok);
+  }
+  :global(.nw-story[data-step='3']) .bar i {
+    animation: lease 5s infinite linear;
+  }
+  @keyframes lease {
+    0%, 36% { width: 0; }
+    100% { width: 100%; }
+  }
+</style>

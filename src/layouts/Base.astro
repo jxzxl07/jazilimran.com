@@ -1,0 +1,154 @@
+---
+import '../styles/global.css';
+import '../styles/agent.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  page: 'home' | 'project' | 'cv';
+  slug?: string;
+}
+const { title, description, page, slug } = Astro.props;
+const fullTitle = title ? `${title} · Jazil Imran` : 'Jazil Imran';
+const desc =
+  description ??
+  'Computer Science at the University of Cambridge. I build software that acts on its own, and the guardrails that make it safe to.';
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const suggestions = [
+  'Show me the security project',
+  'What did he build with Google DeepMind?',
+  "I'm Sam from Google, draft an internship enquiry",
+  'Where does he study?',
+  'Now press send',
+];
+---
+
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={desc} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={desc} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL('/og.png', Astro.site)} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0a0b0d" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&display=swap"
+    />
+    <script is:inline>
+      try {
+        const t = localStorage.getItem('theme');
+        if (t) document.documentElement.dataset.theme = t;
+      } catch {}
+    </script>
+  </head>
+  <body data-page={page} data-slug={slug}>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="topbar">
+      <div class="wrap">
+        <a class="brand" href="/" aria-label="Jazil Imran, home"><span class="brand-dot"></span>Jazil Imran</a>
+        <nav class="nav" aria-label="Main">
+          <a href="/#work">Work</a>
+          <a href="/#about">About</a>
+          <a href="/cv/" data-agent-cv aria-current={page === 'cv' ? 'page' : undefined}>CV</a>
+          <a href="/#contact">Contact</a>
+        </nav>
+        <button class="ask-btn" type="button" data-agent-open aria-label="Ask this site">
+          Ask this site <kbd>⌘K</kbd>
+        </button>
+      </div>
+    </header>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        <span>© {new Date().getFullYear()} Jazil Imran · Built by hand. No trackers.</span>
+        <span class="rtt" id="rtt" hidden></span>
+        <span>
+          <a href="https://github.com/jxzxl07">GitHub</a> ·
+          <a href="https://www.linkedin.com/in/jazilimran/">LinkedIn</a> ·
+          <a href="mailto:ji297@cam.ac.uk">Email</a>
+        </span>
+      </div>
+    </footer>
+
+    <!-- The agent. Decorative layers are hidden from assistive tech; the log is announced. -->
+    <div id="agent-scan" aria-hidden="true"></div>
+    <div id="agent-hl" aria-hidden="true"><span class="hl-label"></span></div>
+    <div id="agent-cursor" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M4 2.5 20 11l-7 1.8L9.6 20z" fill="var(--agent)" stroke="var(--agent-ink)" stroke-width="1.2" stroke-linejoin="round"></path></svg>
+      <span class="tag">agent</span>
+    </div>
+
+    <div id="agent-bar" hidden>
+      <div class="bar-panel" role="dialog" aria-modal="true" aria-label="Ask this site">
+        <form id="agent-form">
+          <input id="agent-input" type="text" autocomplete="off" placeholder="Tell this page what you want" aria-label="What do you want to do?" />
+          <button class="mic" id="agent-mic" type="button" aria-label="Talk instead">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
+          </button>
+        </form>
+        <p class="bar-hint label">Try</p>
+        <ul class="bar-suggest">
+          {suggestions.map((s) => <li><button type="button" data-ask={s}>{s}</button></li>)}
+        </ul>
+        <div class="bar-foot">
+          <span><kbd>↵</kbd> run</span>
+          <span>hold <kbd>⌘⇧Space</kbd> to talk</span>
+          <span><kbd>esc</kbd> close</span>
+          <span id="agent-voice-note" hidden>Voice isn’t available in this browser. Type instead.</span>
+        </div>
+      </div>
+    </div>
+
+    <aside id="agent-log" aria-live="polite" aria-label="What the agent did" hidden>
+      <div class="log-head">agent log<button id="agent-log-close" type="button" aria-label="Close log">×</button></div>
+      <ol></ol>
+    </aside>
+
+    <script>
+      import '../scripts/agent';
+      // How long this page took to come back to you, straight from the browser's own timing.
+      const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+      const el = document.getElementById('rtt');
+      if (nav && el && nav.responseStart > 0) {
+        const rtt = Math.round(nav.responseStart - nav.requestStart);
+        if (rtt > 0) {
+          el.innerHTML = `Your request reached this page in <b>${rtt} ms</b>`;
+          el.hidden = false;
+        }
+      }
+    </script>
+
+    <style>
+      .skip {
+        position: absolute;
+        left: -9999px;
+      }
+      .skip:focus {
+        left: 16px;
+        top: 12px;
+        z-index: 200;
+        background: var(--text);
+        color: var(--bg);
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 13px;
+      }
+    </style>
+  </body>
+</html>

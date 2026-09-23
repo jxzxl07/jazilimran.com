@@ -1,0 +1,299 @@
+---
+// Real cryptography, run in your browser with WebCrypto: the same construction
+// Encrypta uses for direct messages (X25519 → HKDF-SHA256 → AES-256-GCM, with the
+// sender and recipient bound in as associated data).
+---
+
+<div class="demo enc" id="enc">
+  <div class="demo-bar">
+    <span class="live">Live · runs in your browser</span>
+    <span class="spacer"></span>
+    <span id="enc-algo">X25519 · HKDF-SHA256 · AES-256-GCM</span>
+  </div>
+  <div class="demo-body">
+    <div class="cols">
+      <section class="col">
+        <p class="label">Alice’s device</p>
+        <dl class="kv">
+          <dt>public key</dt><dd class="mono" id="a-pub">–</dd>
+          <dt>shared secret</dt><dd class="mono" id="a-sec">–</dd>
+        </dl>
+        <label class="mono small" for="enc-msg">message</label>
+        <textarea id="enc-msg" rows="2">Meet me outside Caius at seven.</textarea>
+        <div class="row">
+          <button class="btn primary" type="button" id="enc-run" data-agent-play>Run the exchange</button>
+          <button class="btn" type="button" id="enc-again" disabled>Encrypt again</button>
+        </div>
+      </section>
+
+      <section class="col server">
+        <p class="label">The server sees</p>
+        <pre class="mono packet" id="packet" aria-live="polite">Nothing yet.</pre>
+        <p class="mono small muted">Act as a malicious server:</p>
+        <div class="row">
+          <button class="chip" type="button" id="tamper" disabled>Flip one byte</button>
+          <button class="chip" type="button" id="forge" disabled>Change the sender</button>
+        </div>
+      </section>
+
+      <section class="col">
+        <p class="label">Bob’s device</p>
+        <dl class="kv">
+          <dt>public key</dt><dd class="mono" id="b-pub">–</dd>
+          <dt>shared secret</dt><dd class="mono" id="b-sec">–</dd>
+        </dl>
+        <p class="mono small">decrypted</p>
+        <div class="out" id="b-out" aria-live="polite">–</div>
+      </section>
+    </div>
+  </div>
+  <p class="demo-note">
+    Real keys, generated just now by your browser and thrown away when you leave. Each side computes the shared
+    secret from its own private key and the other’s public key, so it never crosses the wire.
+  </p>
+</div>
+
+<script>
+  const $ = (id: string) => document.getElementById(id)!;
+  const enc = new TextEncoder();
+  const dec = new TextDecoder();
+  const hex = (b: ArrayBuffer | Uint8Array, n = 20) =>
+    [...new Uint8Array(b)].slice(0, n).map((x) => x.toString(16).padStart(2, '0')).join('') + '…';
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms));
+
+  type Party = { name: string; keys: CryptoKeyPair; pubRaw: ArrayBuffer };
+  let algo: 'X25519' | 'P-256' = 'X25519';
+  let alice: Party, bob: Party;
+  let bobKey: CryptoKey;
+  let aliceKey: CryptoKey;
+  let packet: { from: string; to: string; iv: Uint8Array; ct: Uint8Array } | null = null;
+
+  async function makeParty(name: string): Promise<Party> {
+    let keys: CryptoKeyPair;
+    try {
+      keys = (await crypto.subtle.generateKey({ name: 'X25519' }, true, ['deriveBits'])) as CryptoKeyPair;
+    } catch {
+      // Older browsers lack X25519; the construction is the same over P-256.
+      algo = 'P-256';
+      keys = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
+    }
+    return { name, keys, pubRaw: await crypto.subtle.exportKey('raw', keys.publicKey) };
+  }
+
+  async function sharedKey(me: Party, them: Party) {
+    const bits = await crypto.subtle.deriveBits(
+      algo === 'X25519' ? { name: 'X25519', public: them.keys.publicKey } : { name: 'ECDH', public: them.keys.publicKey },
+      me.keys.privateKey,
+      256,
+    );
+    const base = await crypto.subtle.importKey('raw', bits, 'HKDF', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+      { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32), info: enc.encode('encrypta/dm') },
+      base,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt'],
+    );
+    const fp = await crypto.subtle.digest('SHA-256', bits);
+    return { key, fp };
+  }
+
+  const aad = (from: string, to: string) => enc.encode(`${from}→${to}`);
+
+  function show() {
+    if (!packet) return;
+    $('packet').textContent = JSON.stringify(
+      { from: packet.from, to: packet.to, iv: hex(packet.iv, 12).replace('…', ''), ciphertext: hex(packet.ct, 28) },
+      null,
+      1,
+    );
+  }
+
+  async function deliver() {
+    const out = $('b-out');
+    out.className = 'out';
+    out.textContent = 'decrypting…';
+    await wait(350);
+    try {
+      const pt = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: packet!.iv, additionalData: aad(packet!.from, packet!.to) },
+        bobKey,
+        packet!.ct,
+      );
+      out.textContent = dec.decode(pt);
+      out.classList.add('good');
+    } catch {
+      out.textContent = 'Rejected. The authentication tag didn’t match: the message was altered, or its sender was changed.';
+      out.classList.add('fail');
+    }
+  }
+
+  async function encrypt() {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv, additionalData: aad('alice', 'bob') },
+      aliceKey,
+      enc.encode(($('enc-msg') as HTMLTextAreaElement).value || ' '),
+    );
+    packet = { from: 'alice', to: 'bob', iv, ct: new Uint8Array(ct) };
+    $('packet').classList.remove('bad-packet');
+    show();
+    await wait(400);
+    await deliver();
+  }
+
+  $('enc-run').addEventListener('click', async () => {
+    const run = $('enc-run') as HTMLButtonElement;
+    run.disabled = true;
+    for (const id of ['a-pub', 'b-pub', 'a-sec', 'b-sec']) $(id).textContent = '…';
+    $('b-out').textContent = '–';
+    $('packet').textContent = 'Nothing yet.';
+    alice = await makeParty('alice');
+    $('a-pub').textContent = hex(alice.pubRaw);
+    await wait(300);
+    bob = await makeParty('bob');
+    $('b-pub').textContent = hex(bob.pubRaw);
+    if (algo !== 'X25519') $('enc-algo').textContent = 'ECDH P-256 (your browser lacks X25519) · HKDF · AES-256-GCM';
+    await wait(300);
+    const a = await sharedKey(alice, bob);
+    const b = await sharedKey(bob, alice);
+    aliceKey = a.key;
+    bobKey = b.key;
+    $('a-sec').textContent = hex(a.fp, 10);
+    await wait(250);
+    $('b-sec').textContent = hex(b.fp, 10);
+    const same = hex(a.fp) === hex(b.fp);
+    $('a-sec').classList.toggle('match', same);
+    $('b-sec').classList.toggle('match', same);
+    await wait(400);
+    await encrypt();
+    run.disabled = false;
+    run.textContent = 'New keys';
+    for (const id of ['enc-again', 'tamper', 'forge']) ($(id) as HTMLButtonElement).disabled = false;
+  });
+
+  $('enc-again').addEventListener('click', encrypt);
+
+  $('tamper').addEventListener('click', async () => {
+    if (!packet) return;
+    const ct = packet.ct.slice();
+    ct[Math.floor(Math.random() * ct.length)] ^= 0x01;
+    packet = { ...packet, ct };
+    $('packet').classList.add('bad-packet');
+    show();
+    await deliver();
+  });
+
+  $('forge').addEventListener('click', async () => {
+    if (!packet) return;
+    packet = { ...packet, from: 'mallory' };
+    $('packet').classList.add('bad-packet');
+    show();
+    await deliver();
+  });
+</script>
+
+<style>
+  .cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+  .col {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg);
+    min-width: 0;
+  }
+  .server {
+    background: var(--bg-3);
+    border-style: dashed;
+  }
+  .label {
+    margin: 0;
+  }
+  .kv {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 10px;
+    margin: 0;
+    font-size: 12px;
+  }
+  .kv dt {
+    font-family: var(--mono);
+    color: var(--faint);
+  }
+  .kv dd {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+  }
+  .kv dd.match {
+    color: var(--ok);
+  }
+  .small {
+    font-size: 11.5px;
+    margin: 0;
+  }
+  textarea {
+    width: 100%;
+    border: 1px solid var(--line-2);
+    border-radius: 8px;
+    background: var(--bg-2);
+    padding: 8px 10px;
+    font-size: 16px;
+    resize: vertical;
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .btn {
+    height: 36px;
+    font-size: 12px;
+  }
+  .btn:disabled,
+  .chip:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .packet {
+    margin: 0;
+    font-size: 11.5px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--muted);
+    min-height: 110px;
+  }
+  .bad-packet {
+    color: var(--bad);
+  }
+  .out {
+    min-height: 60px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    font-size: 17px;
+  }
+  .out.good {
+    border-color: var(--ok);
+  }
+  .out.fail {
+    border-color: var(--bad);
+    color: var(--bad);
+    font-size: 15px;
+  }
+  @media (max-width: 860px) {
+    .cols {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,318 @@
+---
+// A synthetic pull shot, drawn as a pose. The metrics are computed live from
+// the joints each frame, the same way CreaseLab derives them from MediaPipe.
+---
+
+<div class="demo cl" id="cl">
+  <div class="demo-bar">
+    <span class="live">Live · pose replay</span>
+    <span class="spacer"></span>
+    <span class="speeds" role="group" aria-label="Playback speed">
+      <button class="chip" type="button" data-speed="0.25" aria-pressed="false">0.25×</button>
+      <button class="chip" type="button" data-speed="0.5" aria-pressed="true">0.5×</button>
+      <button class="chip" type="button" data-speed="1" aria-pressed="false">1×</button>
+    </span>
+  </div>
+  <div class="demo-body grid">
+    <div class="stage">
+      <canvas id="cl-canvas" width="560" height="560" aria-label="Pose replay of a pull shot"></canvas>
+      <div class="controls">
+        <button class="btn primary" type="button" id="cl-play" data-agent-play>Play</button>
+        <input id="cl-scrub" type="range" min="0" max="1000" value="0" aria-label="Scrub through the shot" />
+      </div>
+      <div class="phases mono" id="cl-phases">
+        <span data-at="0">stance</span><span data-at="0.3">backlift</span><span data-at="0.55">downswing</span><span data-at="0.72">contact</span><span data-at="0.9">finish</span>
+      </div>
+    </div>
+    <div class="panel">
+      <p class="label">Classification · experimental</p>
+      <p class="cls" id="cl-cls">–</p>
+      <div class="bars" id="cl-bars"></div>
+      <p class="mono tiny muted">Dashed line: displayed confidence is capped at 60%.</p>
+      <p class="label">Measured from the pose</p>
+      <dl class="metrics mono">
+        <div><dt>front knee flexion</dt><dd id="m-knee">–</dd></div>
+        <div><dt>shoulder line</dt><dd id="m-sh">–</dd></div>
+        <div><dt>hand speed</dt><dd id="m-hand">–</dd></div>
+        <div><dt>head movement</dt><dd id="m-head">–</dd></div>
+      </dl>
+    </div>
+  </div>
+  <p class="demo-note">
+    A synthetic pose, hand-animated for this page, with scores modelled on a real CreaseLab result. The metrics are
+    computed from the joints as it plays. Try the live app with your own clip.
+  </p>
+</div>
+
+<script>
+  type P = [number, number];
+  type Pose = Record<string, P>;
+  // Front-on pull shot, right-handed batter. Coordinates in a unit box.
+  const K: { t: number; p: Pose; bat: P }[] = [
+    { t: 0, bat: [0.53, 0.8], p: { head: [0.5, 0.13], neck: [0.5, 0.21], ls: [0.43, 0.24], rs: [0.57, 0.24], le: [0.43, 0.36], re: [0.57, 0.36], lw: [0.49, 0.46], rw: [0.51, 0.45], lh: [0.45, 0.5], rh: [0.55, 0.5], lk: [0.43, 0.67], rk: [0.57, 0.67], la: [0.41, 0.86], ra: [0.59, 0.86] } },
+    { t: 0.3, bat: [0.74, 0.03], p: { head: [0.5, 0.14], neck: [0.5, 0.22], ls: [0.43, 0.25], rs: [0.57, 0.24], le: [0.5, 0.3], re: [0.65, 0.31], lw: [0.6, 0.21], rw: [0.62, 0.22], lh: [0.45, 0.51], rh: [0.55, 0.51], lk: [0.42, 0.68], rk: [0.58, 0.68], la: [0.4, 0.86], ra: [0.6, 0.86] } },
+    { t: 0.55, bat: [0.8, 0.26], p: { head: [0.49, 0.15], neck: [0.5, 0.23], ls: [0.43, 0.26], rs: [0.57, 0.25], le: [0.49, 0.33], re: [0.63, 0.35], lw: [0.58, 0.33], rw: [0.6, 0.33], lh: [0.45, 0.52], rh: [0.56, 0.52], lk: [0.4, 0.68], rk: [0.58, 0.69], la: [0.37, 0.86], ra: [0.6, 0.86] } },
+    { t: 0.72, bat: [0.16, 0.3], p: { head: [0.5, 0.15], neck: [0.51, 0.23], ls: [0.45, 0.25], rs: [0.58, 0.24], le: [0.44, 0.33], re: [0.56, 0.35], lw: [0.43, 0.34], rw: [0.45, 0.35], lh: [0.46, 0.52], rh: [0.56, 0.51], lk: [0.4, 0.67], rk: [0.6, 0.7], la: [0.37, 0.86], ra: [0.62, 0.86] } },
+    { t: 1, bat: [0.22, 0.02], p: { head: [0.49, 0.14], neck: [0.5, 0.22], ls: [0.44, 0.24], rs: [0.57, 0.25], le: [0.4, 0.28], re: [0.49, 0.3], lw: [0.39, 0.2], rw: [0.41, 0.21], lh: [0.46, 0.51], rh: [0.56, 0.51], lk: [0.41, 0.68], rk: [0.6, 0.7], la: [0.38, 0.86], ra: [0.62, 0.86] } },
+  ];
+  const bones = [
+    ['head', 'neck'], ['ls', 'rs'], ['ls', 'le'], ['le', 'lw'], ['rs', 're'], ['re', 'rw'],
+    ['ls', 'lh'], ['rs', 'rh'], ['lh', 'rh'], ['lh', 'lk'], ['lk', 'la'], ['rh', 'rk'], ['rk', 'ra'],
+  ];
+  const classes = ['pull', 'drive', 'cut', 'flick', 'sweep', 'reverse sweep', 'scoop'];
+  // Scores settle over the shot, ending where a real CreaseLab pull result ended.
+  const finalScores = [0.75, 0.11, 0.08, 0.03, 0.02, 0.005, 0.005];
+
+  const ease = (x: number) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+  const lerp = (a: P, b: P, u: number): P => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
+
+  function poseAt(t: number) {
+    let i = 0;
+    while (i < K.length - 2 && t > K[i + 1].t) i++;
+    const a = K[i], b = K[i + 1];
+    const u = ease(Math.min(1, Math.max(0, (t - a.t) / (b.t - a.t))));
+    const p: Pose = {};
+    for (const k in a.p) p[k] = lerp(a.p[k], b.p[k], u);
+    return { p, bat: lerp(a.bat, b.bat, u) };
+  }
+
+  const angle = (a: P, b: P, c: P) => {
+    const v1 = [a[0] - b[0], a[1] - b[1]], v2 = [c[0] - b[0], c[1] - b[1]];
+    const cos = (v1[0] * v2[0] + v1[1] * v2[1]) / (Math.hypot(v1[0], v1[1]) * Math.hypot(v2[0], v2[1]));
+    return (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI;
+  };
+
+  const canvas = document.getElementById('cl-canvas') as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d')!;
+  const scrub = document.getElementById('cl-scrub') as HTMLInputElement;
+  const play = document.getElementById('cl-play') as HTMLButtonElement;
+  const bars = document.getElementById('cl-bars')!;
+  bars.innerHTML = classes
+    .slice(0, 4)
+    .map((c) => `<div class="bar"><span>${c}</span><span class="track"><i></i><b class="cap"></b></span><span class="v mono">0%</span></div>`)
+    .join('');
+  const barEls = [...bars.querySelectorAll<HTMLElement>('.bar')];
+  const css = (v: string) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  let t = 0, speed = 0.5, playing = false, last = 0;
+  const DURATION = 900; // ms at 1×, about the length of a real pull shot
+  const head0 = K[0].p.head;
+
+  function draw() {
+    const { p, bat } = poseAt(t);
+    const W = canvas.width, H = canvas.height;
+    const X = (q: P) => q[0] * W, Y = (q: P) => q[1] * H;
+    ctx.clearRect(0, 0, W, H);
+    // floor grid
+    ctx.strokeStyle = css('--line');
+    ctx.lineWidth = 1;
+    for (let g = 0; g <= W; g += 40) {
+      ctx.beginPath(); ctx.moveTo(g, 0); ctx.lineTo(g, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, g); ctx.lineTo(W, g); ctx.stroke();
+    }
+    // bat
+    const hands: P = lerp(p.lw, p.rw, 0.5);
+    ctx.strokeStyle = css('--muted');
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(X(hands), Y(hands)); ctx.lineTo(X(bat), Y(bat)); ctx.stroke();
+    // bones
+    ctx.strokeStyle = css('--ok');
+    ctx.lineWidth = 3;
+    for (const [a, b] of bones) {
+      ctx.beginPath(); ctx.moveTo(X(p[a]), Y(p[a])); ctx.lineTo(X(p[b]), Y(p[b])); ctx.stroke();
+    }
+    ctx.fillStyle = css('--text');
+    for (const k in p) {
+      ctx.beginPath(); ctx.arc(X(p[k]), Y(p[k]), k === 'head' ? 9 : 4, 0, Math.PI * 2); ctx.fill();
+    }
+    // front-knee angle arc
+    ctx.strokeStyle = css('--agent');
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(X(p.lk), Y(p.lk), 18, 0, Math.PI * 2); ctx.stroke();
+
+    // metrics, computed from this frame's joints
+    const knee = 180 - angle(p.lh, p.lk, p.la);
+    const sh = (Math.atan2(p.rs[1] - p.ls[1], p.rs[0] - p.ls[0]) * 180) / Math.PI;
+    // Hand speed from the change over the last 1% of the shot. The unit box is about 1.9 m tall.
+    const before = poseAt(Math.max(0, t - 0.01)).p;
+    const handsBefore = lerp(before.lw, before.rw, 0.5);
+    const handSpeed = (Math.hypot(hands[0] - handsBefore[0], hands[1] - handsBefore[1]) * 1.9) / (0.01 * (DURATION / 1000));
+    const headMove = Math.hypot(p.head[0] - head0[0], p.head[1] - head0[1]) * 190;
+    document.getElementById('m-knee')!.textContent = `${knee.toFixed(1)}°`;
+    document.getElementById('m-sh')!.textContent = `${sh >= 0 ? '+' : ''}${sh.toFixed(1)}°`;
+    document.getElementById('m-hand')!.textContent = `${handSpeed.toFixed(1)} m/s`;
+    document.getElementById('m-head')!.textContent = `${headMove.toFixed(1)} cm`;
+
+    // scores settle as more of the shot is seen
+    const seen = Math.min(1, t / 0.85);
+    const flat = 1 / classes.length;
+    barEls.forEach((el, i) => {
+      const v = flat + (finalScores[i] - flat) * ease(seen);
+      (el.querySelector('i') as HTMLElement).style.width = `${v * 100}%`;
+      el.querySelector('.v')!.textContent = `${Math.round(v * 100)}%`;
+    });
+    document.getElementById('cl-cls')!.textContent = seen > 0.75 ? 'Pull' : 'Watching…';
+    document.querySelectorAll<HTMLElement>('#cl-phases span').forEach((s) => s.classList.toggle('on', t >= +s.dataset.at!));
+    scrub.value = String(Math.round(t * 1000));
+  }
+
+  function frame(now: number) {
+    if (!playing) return;
+    const dt = last ? now - last : 16;
+    last = now;
+    t += (dt / DURATION) * speed;
+    if (t >= 1) {
+      t = 1;
+      playing = false;
+      play.textContent = 'Replay';
+    }
+    draw();
+    if (playing) requestAnimationFrame(frame);
+  }
+
+  play.addEventListener('click', () => {
+    if (playing) {
+      playing = false;
+      play.textContent = 'Play';
+      return;
+    }
+    if (t >= 1) t = 0;
+    playing = true;
+    last = 0;
+    play.textContent = 'Pause';
+    requestAnimationFrame(frame);
+  });
+  scrub.addEventListener('input', () => {
+    playing = false;
+    play.textContent = 'Play';
+    t = +scrub.value / 1000;
+    draw();
+  });
+  document.querySelectorAll<HTMLElement>('#cl [data-speed]').forEach((b) =>
+    b.addEventListener('click', () => {
+      speed = +b.dataset.speed!;
+      document.querySelectorAll('#cl [data-speed]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    }),
+  );
+  matchMedia('(prefers-color-scheme: light)').addEventListener('change', draw);
+  draw();
+</script>
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 28px;
+  }
+  canvas {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg);
+  }
+  .controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 12px;
+  }
+  .controls input {
+    flex: 1;
+    accent-color: var(--agent);
+  }
+  .btn {
+    height: 36px;
+    min-width: 84px;
+    justify-content: center;
+  }
+  .speeds {
+    display: flex;
+    gap: 6px;
+  }
+  .speeds .chip {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+  .phases {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--faint);
+  }
+  :global(#cl-phases span.on) {
+    color: var(--text);
+  }
+  .panel .label {
+    margin: 0 0 8px;
+  }
+  .cls {
+    font-size: 44px;
+    line-height: 1;
+    margin: 0 0 16px;
+    letter-spacing: -0.02em;
+  }
+  .bars {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  :global(#cl .bar) {
+    display: grid;
+    grid-template-columns: 70px 1fr 44px;
+    gap: 10px;
+    align-items: center;
+    font-size: 14px;
+  }
+  :global(#cl .track) {
+    position: relative;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--bg-3);
+  }
+  :global(#cl .track i) {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 3px;
+    background: var(--ok);
+  }
+  :global(#cl .track .cap) {
+    position: absolute;
+    left: 60%;
+    top: -4px;
+    bottom: -4px;
+    border-left: 1px dashed var(--muted);
+  }
+  :global(#cl .bar .v) {
+    text-align: right;
+    font-size: 12px;
+  }
+  .tiny {
+    font-size: 11px;
+    margin: 0 0 24px;
+  }
+  .metrics {
+    margin: 0;
+    font-size: 13px;
+  }
+  .metrics div {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .metrics dt {
+    color: var(--muted);
+  }
+  .metrics dd {
+    margin: 0;
+  }
+  @media (max-width: 860px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

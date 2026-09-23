@@ -1,0 +1,227 @@
+---
+import Base from '../layouts/Base.astro';
+import { projects } from '../data/projects';
+
+// The CV, as a page. "Save as PDF" prints it cleanly. No phone number, on purpose.
+const bullets: Record<string, string[]> = {
+  jevbar: [
+    'macOS menu-bar agent: hold ⌘⇧Space, speak, and it acts in the frontmost app through the accessibility tree.',
+    'Fills job applications completely in page order, drafting open answers from the user’s CV with Gemini.',
+    'Every click and keystroke is checked by a pure, tested policy function; it never submits, sends or enters credentials.',
+  ],
+  nightwatch: [
+    'Built an autonomous agent that detects and contains app failures to stabilise services before engineers intervene.',
+    'Orchestrated concurrent repair races across isolated Modal sandboxes, one per Gemini-generated fix, with Jev and a computer-use agent running real browser journeys and failure-injection tests.',
+    'Validated Gemini outputs with strict Pydantic schemas, ranked patches through deterministic test gates, and activated the smallest safe patch under a reversible lease.',
+  ],
+  encrypta: [
+    'Real-time encrypted messaging, group chat and video calling for users anywhere on the internet.',
+    'End-to-end encryption with X25519 key exchange for direct messages and rotating AES-256-GCM keys for groups.',
+    'Zero-knowledge authentication where passwords never leave the device, using Argon2id, JWT rotation and one-time codes.',
+    'Live presence and typing over WebSockets; peer-to-peer WebRTC calls with TURN relays, containerised with end-to-end tests.',
+  ],
+  'tripos-tutor': [
+    'Full-stack AI revision platform for Cambridge students: 230+ past questions, marking and a weakness dashboard.',
+    'LLM marking pipeline with model routing and rubric generation grounded in official mark schemes, validated by a pytest eval harness.',
+    'Secured against prompt injection with structured-output validation and output sanitisation.',
+    'Containerised React + FastAPI app deployed to Render via GitHub Actions, with Gemini and Google OAuth.',
+  ],
+  creaselab: [
+    'Trained pose-based classifiers for seven batting shots and six bowling actions with MediaPipe, evaluated leave-one-session-out.',
+    'React + FastAPI service that turns uploaded footage into pose-tracked replays, biomechanics metrics and evidence-cited coaching.',
+    'GitHub Actions run backend, frontend and Docker health checks on every change.',
+  ],
+  routing: [
+    'Interactive simulator comparing link-state (Dijkstra) and distance-vector (Bellman-Ford) routing on editable topologies.',
+    'Custom binary min-heap with O(log n) decrease_key; live forwarding tables, packet tracing and a count-to-infinity demonstration.',
+  ],
+};
+---
+
+<Base page="cv" title="CV" description="Jazil Imran's CV: Computer Science at the University of Cambridge.">
+  <div class="wrap cv">
+    <header class="cv-head">
+      <div>
+        <h1>Jazil Imran</h1>
+        <p class="mono muted">
+          <a href="mailto:ji297@cam.ac.uk">ji297@cam.ac.uk</a> · <a href="https://www.jazilimran.com">jazilimran.com</a> ·
+          <a href="https://github.com/jxzxl07">github.com/jxzxl07</a> ·
+          <a href="https://www.linkedin.com/in/jazilimran/">linkedin.com/in/jazilimran</a>
+        </p>
+      </div>
+      <button class="btn no-print" type="button" onclick="window.print()">Save as PDF</button>
+    </header>
+
+    <section>
+      <h2 class="label">Education</h2>
+      <div class="item">
+        <div class="line"><b>University of Cambridge, Gonville &amp; Caius College</b><span class="mono">Oct 2025 – Jun 2028</span></div>
+        <p>BA Computer Science. Courses include Algorithms, Object-Oriented Programming, Operating Systems, Databases and Software Engineering.</p>
+      </div>
+      <div class="item">
+        <div class="line"><b>Southend High School for Boys</b><span class="mono">Sep 2018 – Aug 2025</span></div>
+        <p>A-levels: A*A*A*A* in Maths, Further Maths, Computer Science and Physics. Academic Achievement Prize, Computer Science Prize, Senior Maths Challenge Gold, Cricket Team Captain.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="label">Experience</h2>
+      <div class="item">
+        <div class="line"><b>Invirtigo Ltd · Networking Instructor</b><span class="mono">Jun 2022 – Aug 2024</span></div>
+        <ul>
+          <li>Designed and delivered lessons, presentations and Packet Tracer labs for 20+ CCNA students.</li>
+          <li>Taught IPv4, subnetting, VLANs, routing protocols, DNS and NAT, plus troubleshooting with ping, traceroute and show commands.</li>
+          <li>Covered security: ACLs, LAN port security, encryption and firewall fundamentals.</li>
+        </ul>
+      </div>
+      <div class="item">
+        <div class="line"><b>Hudl · Technology Work Shadowing</b><span class="mono">Jul 2024</span></div>
+        <ul>
+          <li>Shadowed software and data engineering teams building object detection, performance analysis and video processing at scale.</li>
+          <li>Followed the delivery workflow across version control, code review, testing, containerisation and CI/CD.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="label">Projects</h2>
+      {
+        projects.map((p) => (
+          <div class="item">
+            <div class="line">
+              <b>
+                <a href={`/work/${p.slug}/`}>{p.name}</a> · {p.kind}
+              </b>
+              <span class="mono">{p.stack.slice(0, 5).join(', ')}</span>
+            </div>
+            <ul>
+              {bullets[p.slug].map((b) => <li>{b}</li>)}
+            </ul>
+          </div>
+        ))
+      }
+    </section>
+
+    <section>
+      <h2 class="label">Technical skills</h2>
+      <p><b>Languages</b> Python, Java, OCaml, C, SQL, JavaScript, TypeScript, Swift</p>
+      <p><b>Frameworks</b> FastAPI, React, OpenCV, MediaPipe, WebRTC, WebSockets, WebCrypto, Gemini API, pytest, scikit-learn</p>
+      <p><b>Systems</b> Docker, GitHub Actions, Render, PostgreSQL, Modal, Git, Linux</p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .cv {
+    max-width: 880px;
+    padding-top: clamp(40px, 7vw, 88px);
+    padding-bottom: 96px;
+  }
+  .cv-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-bottom: 48px;
+  }
+  h1 {
+    font-weight: 400;
+    font-size: clamp(44px, 7vw, 72px);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin: 0 0 14px;
+  }
+  .cv-head p {
+    font-size: 12.5px;
+    margin: 0;
+    line-height: 1.8;
+  }
+  .cv a {
+    text-decoration-color: var(--line-2);
+    text-underline-offset: 3px;
+  }
+  section {
+    border-top: 1px solid var(--line);
+    padding: 28px 0 12px;
+  }
+  h2 {
+    margin: 0 0 18px;
+    font-weight: 400;
+  }
+  .item {
+    margin-bottom: 22px;
+  }
+  .line {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .line b {
+    font-weight: 500;
+  }
+  .line .mono {
+    font-size: 12px;
+    color: var(--muted);
+    padding-top: 4px;
+  }
+  .cv p,
+  .cv li {
+    font-size: 17px;
+    color: var(--muted);
+  }
+  .cv p {
+    margin: 4px 0 8px;
+  }
+  .cv p b {
+    color: var(--text);
+    font-weight: 500;
+    margin-right: 6px;
+  }
+  ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+  }
+  li {
+    margin: 3px 0;
+  }
+  @media print {
+    :global(.topbar),
+    :global(.footer),
+    :global(#agent-log),
+    .no-print {
+      display: none !important;
+    }
+    :global(body) {
+      background: #fff !important;
+      color: #111 !important;
+      font-size: 11pt;
+    }
+    .cv {
+      padding: 0;
+      max-width: none;
+    }
+    .cv p,
+    .cv li,
+    .line .mono,
+    .cv-head p {
+      color: #333 !important;
+    }
+    h1 {
+      font-size: 30pt;
+    }
+    section {
+      border-color: #ccc;
+      padding: 10pt 0 2pt;
+      break-inside: auto;
+    }
+    .item {
+      break-inside: avoid;
+      margin-bottom: 10pt;
+    }
+    .cv a {
+      color: #111;
+    }
+  }
+</style>

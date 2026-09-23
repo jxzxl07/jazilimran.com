@@ -1,0 +1,272 @@
+---
+import Base from '../../layouts/Base.astro';
+import { projects, type Project } from '../../data/projects';
+import JevBarDemo from '../../components/demos/JevBarDemo.astro';
+import NightWatchDemo from '../../components/demos/NightWatchDemo.astro';
+import EncryptaDemo from '../../components/demos/EncryptaDemo.astro';
+import TriposDemo from '../../components/demos/TriposDemo.astro';
+import CreaseLabDemo from '../../components/demos/CreaseLabDemo.astro';
+import RoutingDemo from '../../components/demos/RoutingDemo.astro';
+
+export function getStaticPaths() {
+  return projects.map((p, i) => ({
+    params: { slug: p.slug },
+    props: { p, next: projects[(i + 1) % projects.length] },
+  }));
+}
+
+const { p, next } = Astro.props as { p: Project; next: Project };
+const demos: Record<string, any> = {
+  jevbar: JevBarDemo,
+  nightwatch: NightWatchDemo,
+  encrypta: EncryptaDemo,
+  'tripos-tutor': TriposDemo,
+  creaselab: CreaseLabDemo,
+  routing: RoutingDemo,
+};
+const Demo = demos[p.slug];
+---
+
+<Base page="project" slug={p.slug} title={p.name} description={p.summary}>
+  <article>
+    <header class="head">
+      <div class="wrap">
+        <a class="back mono" href="/#work">← All work</a>
+        <p class="label meta">
+          <span>{p.index}</span><span>{p.kind}</span><span>{p.year}</span>
+          {p.context && <span>{p.context}</span>}
+        </p>
+        <h1 style={`view-transition-name: vt-${p.slug}`}>{p.name}</h1>
+        <p class="lede">{p.summary}</p>
+        <div class="stats">
+          {
+            p.stats.map((s) => (
+              <div class="stat">
+                <span class="v mono">{s.value}</span>
+                <span class="l">{s.label}</span>
+              </div>
+            ))
+          }
+        </div>
+        <div class="links">
+          {p.links.map((l, i) => <a class={`btn ${i === 0 ? 'primary' : ''}`} href={l.href} rel="noopener">{l.label} ↗</a>)}
+        </div>
+      </div>
+    </header>
+
+    <section class="demo-wrap" data-agent-demo aria-label="Live demo">
+      <div class="wrap">
+        <Demo />
+      </div>
+    </section>
+
+    <section class="body">
+      <div class="wrap grid">
+        <div class="side">
+          <p class="label">The problem</p>
+        </div>
+        <div class="prose">
+          {p.problem.map((t) => <p>{t}</p>)}
+        </div>
+
+        <div class="side">
+          <p class="label">How it works</p>
+        </div>
+        <ol class="how">
+          {
+            p.how.map((h, i) => (
+              <li>
+                <span class="mono n">{String(i + 1).padStart(2, '0')}</span>
+                <h3>{h.title}</h3>
+                <p>{h.body}</p>
+              </li>
+            ))
+          }
+        </ol>
+
+        {
+          p.honest && (
+            <>
+              <div class="side">
+                <p class="label">Stated plainly</p>
+              </div>
+              <div class="prose honest">
+                {p.honest.map((t) => <p>{t}</p>)}
+              </div>
+            </>
+          )
+        }
+
+        <div class="side">
+          <p class="label">Built with</p>
+        </div>
+        <ul class="tags">
+          {p.stack.map((s) => <li>{s}</li>)}
+        </ul>
+      </div>
+    </section>
+
+    <nav class="next" aria-label="Next project">
+      <div class="wrap">
+        <a href={`/work/${next.slug}/`} data-agent-project={next.slug} aria-label={next.name}>
+          <span class="label">Next · {next.index}</span>
+          <span class="next-name">{next.name} →</span>
+        </a>
+      </div>
+    </nav>
+  </article>
+</Base>
+
+<style>
+  .head {
+    padding: clamp(40px, 7vw, 88px) 0 clamp(40px, 6vw, 64px);
+  }
+  .back {
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .back:hover {
+    color: var(--text);
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin: 36px 0 18px;
+  }
+  h1 {
+    font-weight: 380;
+    font-size: clamp(48px, 9vw, 120px);
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+    margin: 0;
+  }
+  .lede {
+    max-width: 34em;
+    font-size: clamp(20px, 2vw, 25px);
+    line-height: 1.45;
+    color: var(--muted);
+    margin: 28px 0 0;
+    text-wrap: pretty;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    margin: 48px 0 32px;
+  }
+  .stat {
+    display: grid;
+    gap: 6px;
+    padding: 22px 20px 22px 0;
+  }
+  .stat + .stat {
+    padding-left: 20px;
+    border-left: 1px solid var(--line);
+  }
+  .stat .v {
+    font-size: clamp(22px, 2.6vw, 32px);
+    letter-spacing: -0.02em;
+  }
+  .stat .l {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.35;
+  }
+  @media (max-width: 720px) {
+    .stats {
+      grid-template-columns: 1fr;
+    }
+    .stat + .stat {
+      padding-left: 0;
+      border-left: 0;
+      border-top: 1px solid var(--line);
+    }
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .demo-wrap {
+    padding-bottom: clamp(56px, 9vw, 110px);
+  }
+  .body {
+    border-top: 1px solid var(--line);
+    padding: clamp(56px, 9vw, 110px) 0;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 28px 40px;
+  }
+  .grid > .side {
+    padding-top: 6px;
+  }
+  .grid > :not(.side) {
+    margin-bottom: 48px;
+  }
+  .prose p {
+    margin: 0 0 1em;
+    max-width: 38em;
+    text-wrap: pretty;
+  }
+  .honest p {
+    padding-left: 16px;
+    border-left: 2px solid var(--line-2);
+    color: var(--muted);
+  }
+  .how {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 36px 40px;
+  }
+  .how .n {
+    font-size: 12px;
+    color: var(--faint);
+  }
+  .how h3 {
+    font-weight: 450;
+    font-size: 22px;
+    line-height: 1.25;
+    margin: 8px 0 8px;
+  }
+  .how p {
+    margin: 0;
+    font-size: 17px;
+    color: var(--muted);
+    text-wrap: pretty;
+  }
+  @media (max-width: 860px) {
+    .grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .how {
+      grid-template-columns: 1fr;
+    }
+  }
+  .next {
+    border-top: 1px solid var(--line);
+  }
+  .next a {
+    display: grid;
+    gap: 8px;
+    padding: clamp(48px, 8vw, 96px) 0;
+    text-decoration: none;
+  }
+  .next-name {
+    font-size: clamp(34px, 6vw, 72px);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    transition: color 0.2s;
+  }
+  .next a:hover .next-name {
+    color: var(--agent);
+  }
+</style>

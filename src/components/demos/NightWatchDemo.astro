@@ -1,0 +1,369 @@
+---
+// A replay of NightWatch's pipeline on its own demo scenario: a checkout that
+// double-charges after the connection drops between capture and confirmation.
+---
+
+<div class="demo nw" id="nw">
+  <div class="demo-bar">
+    <span class="live">Replay · incident pipeline</span>
+    <span class="spacer"></span>
+    <span id="nw-clock" class="mono">00:00.0</span>
+  </div>
+  <div class="demo-body">
+    <div class="top">
+      <div class="shop" id="nw-shop">
+        <p class="label">checkout · live service</p>
+        <div class="order">
+          <span>SKU-A × 1</span><span class="mono">£79.99</span>
+        </div>
+        <div class="ledger mono" id="nw-ledger">
+          <div>capture <span>£79.99</span></div>
+        </div>
+        <p class="shop-status mono" id="nw-status">healthy</p>
+      </div>
+      <ol class="timeline mono" id="nw-log" aria-live="polite"></ol>
+    </div>
+
+    <div class="cands" id="nw-cands">
+      {
+        [
+          ['A', 'minimal', 'Idempotency key on capture', '+6 −1'],
+          ['B', 'defensive', 'Never retry after a timeout', '+3 −9'],
+          ['C', 'structural', 'Ask the ledger before retrying', '+41 −12'],
+        ].map(([id, kind, title, diff]) => (
+          <div class="cand" data-c={id}>
+            <p class="label">
+              sandbox {id} · {kind}
+            </p>
+            <p class="cand-t">{title}</p>
+            <p class="mono diff">{diff}</p>
+            <ul class="checks mono">
+              <li data-k="exploit">replay the fault</li>
+              <li data-k="flow">normal checkout</li>
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="report" id="nw-report" hidden>
+      <p class="label">Incident report</p>
+      <p>
+        <b>Cause.</b> A dropped connection after payment capture triggered a blind retry, which captured again.
+      </p>
+      <p>
+        <b>Fix.</b> Sandbox A: an idempotency key on capture. It blocked the double charge, kept checkout working and had
+        the smallest diff. B stopped the charge but left orders stuck as pending. C worked but changed 53 lines.
+      </p>
+      <p>
+        <b>Held for a human.</b> The patch touches payments, so the safety gate asked before shipping. Once approved, it
+        went live under a reversible lease.
+      </p>
+    </div>
+
+    <div class="row">
+      <button class="btn primary" type="button" id="nw-run" data-agent-play>Start the incident</button>
+      <button class="btn" type="button" id="nw-approve" hidden>Approve patch A</button>
+    </div>
+  </div>
+  <p class="demo-note">
+    An illustrated replay of the pipeline’s stages on NightWatch’s own demo scenario, with timings compressed. The real
+    run, with Gemini, Modal sandboxes and Jev driving a browser, is in the demo video.
+  </p>
+</div>
+
+<script>
+  const $ = (id: string) => document.getElementById(id)!;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, reduced ? 30 : ms));
+  let t0 = 0, ticking = 0;
+
+  function clock() {
+    const s = (performance.now() - t0) / 1000;
+    $('nw-clock').textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${(s % 60).toFixed(1).padStart(4, '0')}`;
+    ticking = requestAnimationFrame(clock);
+  }
+
+  function log(text: string, tone = '') {
+    const li = document.createElement('li');
+    li.className = tone;
+    li.textContent = text;
+    $('nw-log').append(li);
+    $('nw-log').scrollTop = 1e6;
+  }
+
+  function check(c: string, k: string, pass: boolean, note: string) {
+    const li = document.querySelector<HTMLElement>(`#nw .cand[data-c="${c}"] [data-k="${k}"]`)!;
+    li.className = pass ? 'pass' : 'fail';
+    li.textContent = note;
+  }
+
+  let approve: (() => void) | null = null;
+  $('nw-approve').addEventListener('click', () => approve?.());
+
+  $('nw-run').addEventListener('click', async () => {
+    const run = $('nw-run') as HTMLButtonElement;
+    run.disabled = true;
+    // Reset
+    $('nw-log').innerHTML = '';
+    $('nw-report').hidden = true;
+    $('nw-shop').className = 'shop';
+    $('nw-status').textContent = 'healthy';
+    $('nw-ledger').innerHTML = '<div>capture <span>£79.99</span></div>';
+    document.querySelectorAll<HTMLElement>('#nw .cand').forEach((c) => {
+      c.className = 'cand';
+      c.querySelector('[data-k="exploit"]')!.textContent = 'replay the fault';
+      c.querySelector('[data-k="flow"]')!.textContent = 'normal checkout';
+      c.querySelectorAll('li').forEach((l) => (l.className = ''));
+    });
+    t0 = performance.now();
+    cancelAnimationFrame(ticking);
+    clock();
+
+    log('connection dropped after capture');
+    await wait(700);
+    $('nw-ledger').insertAdjacentHTML('beforeend', '<div class="dup">capture <span>£79.99</span></div>');
+    $('nw-shop').classList.add('broken');
+    $('nw-status').textContent = 'customer charged twice';
+    log('ledger invariant broken: 2 captures, 1 order', 'bad');
+    await wait(900);
+    log('not a recent deploy → full diagnosis');
+    await wait(700);
+    log('gemini: blind retry in capture_payment() after timeout');
+    await wait(900);
+    log('gemini: 3 candidate patches (validated schemas)');
+    document.querySelectorAll('#nw .cand').forEach((c) => c.classList.add('live'));
+    await wait(600);
+    log('modal: 3 sandboxes booted, browsers attached');
+
+    await wait(900);
+    check('B', 'exploit', true, 'fault replay: 1 capture ✓');
+    await wait(300);
+    check('A', 'exploit', true, 'fault replay: 1 capture ✓');
+    await wait(500);
+    check('C', 'exploit', true, 'fault replay: 1 capture ✓');
+    await wait(700);
+    check('B', 'flow', false, 'checkout: stuck pending ✗');
+    document.querySelector('#nw .cand[data-c="B"]')!.classList.add('out');
+    await wait(600);
+    check('A', 'flow', true, 'checkout: paid ✓');
+    await wait(500);
+    check('C', 'flow', true, 'checkout: paid ✓');
+    await wait(700);
+    log('winner: A (both checks pass, smallest diff)');
+    document.querySelector('#nw .cand[data-c="A"]')!.classList.add('win');
+    document.querySelector('#nw .cand[data-c="C"]')!.classList.add('out');
+    await wait(800);
+    log('safety gate: patch touches payments → held for a human', 'amber');
+    cancelAnimationFrame(ticking);
+
+    const btn = $('nw-approve') as HTMLButtonElement;
+    btn.hidden = false;
+    btn.focus({ preventScroll: true });
+    await new Promise<void>((r) => (approve = r));
+    approve = null;
+    btn.hidden = true;
+    t0 = performance.now() - 1000 * parseFloat($('nw-clock').textContent!.slice(3));
+    clock();
+
+    log('approved by engineer');
+    await wait(500);
+    log('patch A live under a reversible lease');
+    $('nw-ledger').lastElementChild!.classList.add('refunded');
+    $('nw-shop').className = 'shop healed';
+    $('nw-status').textContent = 'healthy · duplicate flagged in the report';
+    await wait(600);
+    log('incident report written', 'good');
+    $('nw-report').hidden = false;
+    cancelAnimationFrame(ticking);
+    run.disabled = false;
+    run.textContent = 'Replay';
+  });
+</script>
+
+<style>
+  .top {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 16px;
+  }
+  .shop {
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg);
+    transition: border-color 0.3s;
+  }
+  .shop .label {
+    margin: 0 0 12px;
+  }
+  .order {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .ledger {
+    font-size: 12.5px;
+    padding: 10px 0;
+    color: var(--muted);
+    min-height: 58px;
+  }
+  .ledger div {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+  }
+  :global(#nw .ledger .dup) {
+    color: var(--bad);
+    animation: jolt 0.4s steps(2) 3;
+  }
+  :global(#nw .ledger .dup.refunded) {
+    color: var(--faint);
+    text-decoration: line-through;
+    animation: none;
+  }
+  .shop-status {
+    margin: 0;
+    font-size: 12px;
+    color: var(--ok);
+  }
+  :global(#nw .shop.broken) {
+    border-color: var(--bad);
+    animation: jolt 0.35s steps(2) 2;
+  }
+  :global(#nw .shop.broken .shop-status) {
+    color: var(--bad);
+  }
+  :global(#nw .shop.healed) {
+    border-color: var(--ok);
+  }
+  @keyframes jolt {
+    0% {
+      transform: translateX(-2px);
+      filter: hue-rotate(40deg);
+    }
+    50% {
+      transform: translateX(2px);
+    }
+  }
+  .timeline {
+    list-style: none;
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg);
+    font-size: 12.5px;
+    height: 196px;
+    overflow: auto;
+    color: var(--muted);
+  }
+  :global(#nw .timeline li) {
+    padding: 3px 0;
+    animation: rise 0.3s var(--ease);
+  }
+  :global(#nw .timeline li::before) {
+    content: '› ';
+    color: var(--faint);
+  }
+  :global(#nw .timeline li.bad) {
+    color: var(--bad);
+  }
+  :global(#nw .timeline li.amber) {
+    color: var(--agent);
+  }
+  :global(#nw .timeline li.good) {
+    color: var(--ok);
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+  .cands {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .cand {
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    opacity: 0.35;
+    transition: opacity 0.4s, border-color 0.4s, transform 0.4s var(--ease);
+  }
+  .cand .label {
+    margin: 0;
+  }
+  .cand-t {
+    margin: 6px 0 2px;
+    font-size: 17px;
+    line-height: 1.3;
+  }
+  .diff {
+    margin: 0 0 10px;
+    font-size: 12px;
+    color: var(--faint);
+  }
+  .checks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    color: var(--faint);
+  }
+  .checks li {
+    padding: 2px 0;
+  }
+  :global(#nw .checks li.pass) {
+    color: var(--ok);
+  }
+  :global(#nw .checks li.fail) {
+    color: var(--bad);
+  }
+  :global(#nw .cand.live) {
+    opacity: 1;
+  }
+  :global(#nw .cand.out) {
+    opacity: 0.45;
+  }
+  :global(#nw .cand.win) {
+    opacity: 1;
+    border-color: var(--agent);
+    transform: translateY(-3px);
+    box-shadow: 0 0 0 3px var(--agent-dim);
+  }
+  .report {
+    border: 1px solid var(--line-2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    font-size: 16px;
+    background: var(--bg);
+  }
+  .report p {
+    margin: 0 0 6px;
+  }
+  .report b {
+    font-weight: 500;
+  }
+  .row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  #nw-approve {
+    border-color: var(--agent);
+    color: var(--agent);
+  }
+  @media (max-width: 860px) {
+    .top,
+    .cands {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

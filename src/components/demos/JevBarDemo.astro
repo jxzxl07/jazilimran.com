@@ -1,0 +1,164 @@
+---
+// JevBar's own policy function, ported to run here. The same one guards the
+// agent on every page of this site.
+const cases = [
+  { verb: 'click', name: 'Next', task: 'jobApplication' },
+  { verb: 'click', name: 'Save draft', task: 'jobApplication' },
+  { verb: 'click', name: 'Submit application', task: 'jobApplication' },
+  { verb: 'click', name: 'Resend code', task: 'general' },
+  { verb: 'click', name: 'Send', task: 'general' },
+  { verb: 'typeText', name: 'Password', task: 'general' },
+];
+---
+
+<div class="demo jb" id="jb">
+  <div class="demo-bar">
+    <span class="live">Live · JevBar’s policy, running in your browser</span>
+    <span class="spacer"></span>
+    <span>authorize(action, task)</span>
+  </div>
+  <div class="demo-body grid">
+    <div class="video">
+      <video src="/media/jevbar.mp4#t=0.1" controls preload="metadata" playsinline width="1664" height="1080"></video>
+      <p class="mono tiny muted">JevBar filling a job application from one spoken sentence. 1 min 14 s.</p>
+    </div>
+    <div class="policy">
+      <p class="lead">
+        Every click and keystroke JevBar makes is checked by one pure function, using the control’s real name from
+        the accessibility tree. Try to get something past it.
+      </p>
+      <form id="jb-form" class="try">
+        <select id="jb-verb" aria-label="Action">
+          <option value="click">click</option>
+          <option value="typeText">type into</option>
+        </select>
+        <input id="jb-name" value="Submit application" aria-label="Control name" autocomplete="off" />
+        <select id="jb-task" aria-label="Task">
+          <option value="jobApplication">in an application</option>
+          <option value="general">anywhere</option>
+        </select>
+        <button class="btn" type="submit">Check</button>
+      </form>
+      <p class="verdict mono" id="jb-verdict" aria-live="polite"></p>
+      <div class="cases">
+        <button class="btn primary" type="button" id="jb-run" data-agent-play>Run the test cases</button>
+        <table class="mono" id="jb-table">
+          <tbody>
+            {
+              cases.map((c) => (
+                <tr data-verb={c.verb} data-name={c.name} data-task={c.task}>
+                  <td>{c.verb === 'click' ? 'click' : 'type into'} “{c.name}”</td>
+                  <td class="res">–</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <p class="demo-note">
+    A line-for-line port of Policy.swift. Whole phrases are matched against the control’s own words, so “Resend code”
+    is not mistaken for “Send”, and “Next” and “Save draft” stay allowed, or no multi-page form could be filled.
+  </p>
+</div>
+
+<script>
+  import { authorize, type Verb, type TaskKind } from '../../scripts/policy';
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+  function check(verb: Verb, name: string, task: TaskKind) {
+    return authorize({ verb, controlName: name }, task);
+  }
+
+  $('jb-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const d = check($<HTMLSelectElement>('jb-verb').value as Verb, $<HTMLInputElement>('jb-name').value, $<HTMLSelectElement>('jb-task').value as TaskKind);
+    const v = $('jb-verdict');
+    v.className = `verdict mono ${d.allow ? 'ok' : 'bad'}`;
+    v.textContent = d.allow ? '✓ allowed' : `⊘ refused: ${d.reason}`;
+  });
+
+  $('jb-run').addEventListener('click', async () => {
+    const rows = [...document.querySelectorAll<HTMLTableRowElement>('#jb-table tr')];
+    rows.forEach((r) => (r.querySelector('.res')!.textContent = '–'));
+    for (const r of rows) {
+      await new Promise((res) => setTimeout(res, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 280));
+      const d = check(r.dataset.verb as Verb, r.dataset.name!, r.dataset.task as TaskKind);
+      const cell = r.querySelector<HTMLElement>('.res')!;
+      cell.className = `res ${d.allow ? 'ok' : 'bad'}`;
+      cell.textContent = d.allow ? '✓ allowed' : '⊘ refused';
+      cell.title = d.allow ? '' : d.reason;
+    }
+  });
+</script>
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 28px;
+  }
+  video {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: #000;
+  }
+  .tiny {
+    font-size: 11.5px;
+    margin: 8px 0 0;
+  }
+  .lead {
+    margin: 0 0 16px;
+    font-size: 17px;
+    color: var(--muted);
+  }
+  .try {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+  }
+  .try input,
+  .try select {
+    border: 1px solid var(--line-2);
+    border-radius: 8px;
+    background: var(--bg);
+    padding: 8px 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+    min-width: 0;
+  }
+  .btn {
+    height: 38px;
+    justify-content: center;
+  }
+  .verdict {
+    font-size: 12.5px;
+    min-height: 3.2em;
+    margin: 10px 0;
+    line-height: 1.5;
+  }
+  .cases .btn {
+    margin-bottom: 10px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  td {
+    padding: 6px 0;
+    border-top: 1px solid var(--line);
+  }
+  td.res {
+    text-align: right;
+    white-space: nowrap;
+  }
+  @media (max-width: 860px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

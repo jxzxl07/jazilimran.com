@@ -1,0 +1,372 @@
+---
+// Two small, real simulations: Dijkstra on a network you can break, and
+// synchronous distance-vector rounds showing count-to-infinity.
+const nodes = {
+  A: [60, 150], B: [210, 60], C: [210, 240], D: [390, 60], E: [390, 240], F: [540, 150],
+} as Record<string, [number, number]>;
+const links: [string, string, number][] = [
+  ['A', 'B', 2], ['A', 'C', 5], ['B', 'C', 1], ['B', 'D', 4],
+  ['C', 'E', 3], ['D', 'E', 1], ['D', 'F', 3], ['E', 'F', 6],
+];
+---
+
+<div class="demo rt" id="rt">
+  <div class="demo-bar">
+    <span class="live">Live · link-state (Dijkstra)</span>
+    <span class="spacer"></span>
+    <span>click a link to fail it</span>
+  </div>
+  <div class="demo-body split">
+    <svg viewBox="0 0 600 300" class="net" role="img" aria-label="Network of six routers">
+      <g id="rt-links">
+        {
+          links.map(([a, b, w]) => (
+            <g class="link" data-a={a} data-b={b} data-w={w} tabindex="0" role="button" aria-label={`Link ${a} to ${b}, cost ${w}`}>
+              <line x1={nodes[a][0]} y1={nodes[a][1]} x2={nodes[b][0]} y2={nodes[b][1]} class="hit" />
+              <line x1={nodes[a][0]} y1={nodes[a][1]} x2={nodes[b][0]} y2={nodes[b][1]} class="wire" />
+              <text x={(nodes[a][0] + nodes[b][0]) / 2} y={(nodes[a][1] + nodes[b][1]) / 2 - 8} class="w">{w}</text>
+            </g>
+          ))
+        }
+      </g>
+      <circle id="rt-packet" r="5" cx="-20" cy="-20"></circle>
+      {
+        Object.entries(nodes).map(([n, [x, y]]) => (
+          <g class="node" data-n={n}>
+            <circle cx={x} cy={y} r="18" />
+            <text x={x} y={y + 4}>{n}</text>
+          </g>
+        ))
+      }
+    </svg>
+    <div class="side">
+      <p class="label">Route A → F</p>
+      <p class="path mono" id="rt-path">–</p>
+      <p class="label">A’s forwarding table</p>
+      <table class="mono table" id="rt-table">
+        <thead><tr><th>to</th><th>next hop</th><th>cost</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="mono msg" id="rt-msg" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div class="cti">
+    <div class="demo-bar">
+      <span class="live">Live · distance-vector, count to infinity</span>
+      <span class="spacer"></span>
+      <label class="mono sh"><input type="checkbox" id="cti-split" /> split horizon</label>
+    </div>
+    <div class="demo-body">
+      <p class="cti-lead">
+        A — B — C, every link cost 1. Break B–C and watch A and B each believe the other can still reach C.
+      </p>
+      <div class="row">
+        <button class="btn primary" type="button" id="cti-run" data-agent-play>Break the B–C link</button>
+      </div>
+      <div class="rounds" id="cti-rounds" aria-live="polite"></div>
+    </div>
+  </div>
+  <p class="demo-note">
+    Both run in your browser. The full simulator does the same in Python, with a hand-built binary heap, YAML
+    topologies and packet tracing between any two routers.
+  </p>
+</div>
+
+<script>
+  const svg = document.querySelector<SVGSVGElement>('#rt .net')!;
+  const linkEls = [...svg.querySelectorAll<SVGGElement>('.link')];
+  const pos: Record<string, [number, number]> = {};
+  svg.querySelectorAll<SVGGElement>('.node').forEach((g) => {
+    const c = g.querySelector('circle')!;
+    pos[g.dataset.n!] = [+c.getAttribute('cx')!, +c.getAttribute('cy')!];
+  });
+  const names = Object.keys(pos);
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  type Edge = { a: string; b: string; w: number; up: boolean; el: SVGGElement };
+  const edges: Edge[] = linkEls.map((el) => ({ a: el.dataset.a!, b: el.dataset.b!, w: +el.dataset.w!, up: true, el }));
+
+  function dijkstra(src: string) {
+    const dist: Record<string, number> = {}, prev: Record<string, string | null> = {};
+    names.forEach((n) => ((dist[n] = Infinity), (prev[n] = null)));
+    dist[src] = 0;
+    const todo = new Set(names);
+    while (todo.size) {
+      let u = '';
+      todo.forEach((n) => (u === '' || dist[n] < dist[u]) && (u = n));
+      if (dist[u] === Infinity) break;
+      todo.delete(u);
+      for (const e of edges) {
+        if (!e.up) continue;
+        const v = e.a === u ? e.b : e.b === u ? e.a : null;
+        if (v && todo.has(v) && dist[u] + e.w < dist[v]) {
+          dist[v] = dist[u] + e.w;
+          prev[v] = u;
+        }
+      }
+    }
+    return { dist, prev };
+  }
+
+  const connected = () => Object.values(dijkstra('A').dist).every((d) => d < Infinity);
+
+  let anim = 0;
+  function render() {
+    const { dist, prev } = dijkstra('A');
+    const path: string[] = [];
+    for (let n: string | null = 'F'; n; n = prev[n]) path.unshift(n);
+    const onPath = new Set(path.slice(1).map((n, i) => [path[i], n].sort().join('')));
+    edges.forEach((e) => {
+      e.el.classList.toggle('down', !e.up);
+      e.el.classList.toggle('on', onPath.has([e.a, e.b].sort().join('')));
+    });
+    document.getElementById('rt-path')!.innerHTML = `${path.join(' → ')} <span class="muted">· cost ${dist.F}</span>`;
+    const body = document.querySelector('#rt-table tbody')!;
+    body.innerHTML = names
+      .filter((n) => n !== 'A')
+      .map((n) => {
+        let hop = n;
+        while (prev[hop] && prev[hop] !== 'A') hop = prev[hop]!;
+        return `<tr><td>${n}</td><td>${hop}</td><td>${dist[n]}</td></tr>`;
+      })
+      .join('');
+    runPacket(path);
+  }
+
+  function runPacket(path: string[]) {
+    const dot = document.getElementById('rt-packet')!;
+    const id = ++anim;
+    if (reduced) return;
+    let i = 0, t = 0;
+    const step = () => {
+      if (id !== anim) return;
+      const [x1, y1] = pos[path[i]], [x2, y2] = pos[path[i + 1]];
+      t += 0.035;
+      if (t >= 1) {
+        t = 0;
+        i++;
+        if (i >= path.length - 1) i = 0;
+      }
+      dot.setAttribute('cx', String(x1 + (x2 - x1) * t));
+      dot.setAttribute('cy', String(y1 + (y2 - y1) * t));
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  function toggle(e: Edge) {
+    const msg = document.getElementById('rt-msg')!;
+    e.up = !e.up;
+    if (!connected()) {
+      e.up = true;
+      msg.textContent = `Refused: failing ${e.a}–${e.b} would disconnect the network, as in the real simulator.`;
+      msg.className = 'mono msg bad';
+      return;
+    }
+    msg.textContent = e.up ? `${e.a}–${e.b} restored. Tables recomputed.` : `${e.a}–${e.b} failed. Every router recomputed at once.`;
+    msg.className = 'mono msg';
+    render();
+  }
+  edges.forEach((e) => {
+    e.el.addEventListener('click', () => toggle(e));
+    e.el.addEventListener('keydown', (k) => (k.key === 'Enter' || k.key === ' ') && (k.preventDefault(), toggle(e)));
+  });
+  render();
+
+  // Count to infinity: A—B—C, synchronous rounds of distance-vector exchange.
+  const INF = 16; // RIP's infinity
+  document.getElementById('cti-run')!.addEventListener('click', async () => {
+    const btn = document.getElementById('cti-run') as HTMLButtonElement;
+    const split = (document.getElementById('cti-split') as HTMLInputElement).checked;
+    const out = document.getElementById('cti-rounds')!;
+    btn.disabled = true;
+    // Converged state before the failure: distance and next hop to C.
+    let A = { d: 2, via: 'B' }, B = { d: 1, via: 'C' };
+    out.innerHTML = '';
+    const line = (r: string, a: typeof A, b: typeof B, note = '') => {
+      const el = document.createElement('div');
+      el.className = 'round';
+      const cell = (x: typeof A) => `<span class="${x.d >= INF ? 'bad' : ''}">${x.d >= INF ? '∞' : x.d} <i>via ${x.via}</i></span>`;
+      el.innerHTML = `<span class="r mono">${r}</span>${cell(a)}${cell(b)}<span class="n">${note}</span>`;
+      out.append(el);
+    };
+    const head = document.createElement('div');
+    head.className = 'round head mono';
+    head.innerHTML = '<span></span><span>A’s route to C</span><span>B’s route to C</span><span></span>';
+    out.append(head);
+    line('before', A, B);
+    for (let r = 1; r <= 20; r++) {
+      await new Promise((res) => setTimeout(res, reduced ? 0 : 380));
+      // What each router hears from its neighbour this round.
+      const aTellsB = split && A.via === 'B' ? INF : A.d;
+      const newB = r === 1 || B.via !== 'C' ? { d: Math.min(INF, aTellsB + 1), via: 'A' } : B;
+      const bTellsA = split && B.via === 'A' ? INF : B.d;
+      const newA = A.via === 'B' ? { d: Math.min(INF, bTellsA + 1), via: 'B' } : A;
+      A = newA;
+      B = newB;
+      const done = A.d >= INF && B.d >= INF;
+      line(`round ${r}`, A, B, r === 1 && !split ? 'B trusts A’s old route' : done ? 'converged: C unreachable' : '');
+      if (done) break;
+    }
+    btn.disabled = false;
+    btn.textContent = 'Run it again';
+  });
+</script>
+
+<style>
+  .split {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .net {
+    width: 100%;
+    height: auto;
+  }
+  .net .hit {
+    stroke: transparent;
+    stroke-width: 18;
+    cursor: pointer;
+  }
+  .net .wire {
+    stroke: var(--line-2);
+    stroke-width: 2;
+    transition: stroke 0.3s;
+    pointer-events: none;
+  }
+  .net .link:hover .wire,
+  .net .link:focus .wire {
+    stroke: var(--muted);
+  }
+  .net .link.on .wire {
+    stroke: var(--agent);
+    stroke-width: 3;
+  }
+  .net .link.down .wire {
+    stroke: var(--bad);
+    stroke-dasharray: 5 6;
+  }
+  .net .link:focus {
+    outline: none;
+  }
+  .net .w {
+    fill: var(--faint);
+    font-family: var(--mono);
+    font-size: 12px;
+    text-anchor: middle;
+    pointer-events: none;
+  }
+  .net .node circle {
+    fill: var(--bg);
+    stroke: var(--text);
+    stroke-width: 1.5;
+  }
+  .net .node text {
+    fill: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    text-anchor: middle;
+  }
+  #rt-packet {
+    fill: var(--agent);
+  }
+  .side .label {
+    margin: 0 0 6px;
+  }
+  .path {
+    font-size: 15px;
+    margin: 0 0 20px;
+  }
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .table th {
+    text-align: left;
+    font-weight: 400;
+    color: var(--faint);
+    padding: 4px 0;
+  }
+  .table td {
+    padding: 4px 0;
+    border-top: 1px solid var(--line);
+  }
+  .msg {
+    font-size: 12px;
+    color: var(--muted);
+    min-height: 3em;
+    margin: 14px 0 0;
+  }
+  .cti {
+    border-top: 1px solid var(--line);
+  }
+  .cti .demo-bar {
+    border-bottom: 1px solid var(--line);
+  }
+  .sh {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    cursor: pointer;
+  }
+  .cti-lead {
+    margin: 0 0 14px;
+    font-size: 17px;
+    color: var(--muted);
+  }
+  .row {
+    display: flex;
+    gap: 8px;
+  }
+  .rounds {
+    margin-top: 16px;
+    display: grid;
+    gap: 2px;
+    max-height: 340px;
+    overflow: auto;
+  }
+  :global(#rt .round) {
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr 1.4fr;
+    gap: 12px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    animation: rise 0.3s var(--ease);
+  }
+  :global(#rt .round.head) {
+    color: var(--faint);
+    font-size: 11px;
+  }
+  :global(#rt .round i) {
+    font-style: normal;
+    color: var(--faint);
+  }
+  :global(#rt .round .n) {
+    color: var(--agent);
+  }
+  :global(#rt .round .r) {
+    color: var(--faint);
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+  @media (max-width: 860px) {
+    .split {
+      grid-template-columns: 1fr;
+    }
+    :global(#rt .round) {
+      grid-template-columns: 60px 1fr 1fr;
+    }
+    :global(#rt .round .n) {
+      grid-column: 1 / -1;
+    }
+  }
+</style>
